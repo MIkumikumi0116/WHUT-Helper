@@ -5,17 +5,18 @@ from sys import exit as SYS_exit
 from copy import copy as COPY_copy
 from re import findall as RE_findall
 from lxml import etree as LXML_etree
-from time import sleep as TIME_Sleep
+from time import sleep as TIME_sleep
 from json import loads as JSON_loads
 from json import dumps as JSON_dumps
 from datetime import date as DATE_date
 from threading import Thread as THREAD_Thread
 from datetime import timedelta as DATE_timedelta
-from selenium import webdriver as Selenium_Webdriver
-from selenium.webdriver.chrome.options import Options as Chrome_Options
+from selenium import webdriver as Selenium_webdriver
+from selenium.webdriver.chrome.options import Options as Chrome_options
 
 
-from PyQt5.QtCore import Qt,pyqtSignal
+
+from PyQt5.QtCore import Qt,pyqtSignal,QThread
 from PyQt5.QtGui import QBitmap, QPainter
 from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QHeaderView, QListView
 
@@ -29,29 +30,23 @@ FIRST_WEEK_DATE = DATE_date(2021,3,1)
 
 class Main_Window(QMainWindow, Ui_Main_Window_UI):
     '''管理窗口控件、所有模块公用的逻辑、主业务逻辑'''
+    show_info_single = pyqtSignal(str,bool)   #在Info_Label显示提示信息3秒(bool = False)或持续显示(bool = True)
+
     def __init__(self): #TODO:登录逻辑要改
         QMainWindow.__init__(self)
         #设置窗口样式、设置激励与响应等构造方法中不包含业务逻辑的部分
         self.Main_window_init()
 
+        self.message_window = None  #为避免垃圾回收把窗口搞没了，留一个指向窗口的指针
+
+        self.info_thread = None
+
         self.darging = False
         self.drag_first_point = None
         self.drag_second_point = None
 
-        self.login_window = None    #为避免垃圾回收把窗口搞没了，留一个指向窗口的指针
-        self.message_window = None
-
-        self.data_struct_module.Get_Data_Struct_from_disk()
-        #联网获取课表耗时很长，另外开个线程免得主窗口卡着不动了
-        t = THREAD_Thread(target = self.data_struct_module.Check_course_list_same_to_web)
-        t.start()
-
-        #self.data_struct_module.course_list = self.data_struct_module.course_list_temp
         self.schedule_tab.Set_schedule()
-        #t = THREAD_Thread(target = self.Check_course_list_same_to_web)
-        #t.start()
-
-        #self.data_struct_module.Save_Data_Struct_to_disk()
+        self.data_struct_module.Check_data_same_to_web()
 
     def Main_window_init(self):
         '''构造方法中不包含业务逻辑的部分，如设置窗口样式、设置激励与响应等'''
@@ -62,7 +57,7 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
                                 #各模块的main_window指针在构造函数里都指到主窗口去
 
         self.view_manage = Main_Window_View(self.main_window)
-        self.view_manage.Set_Main_window_style()
+        self.view_manage.Set_main_window_style()
 
         self.data_struct_module = Data_Struct_Module(self.main_window)
 
@@ -71,42 +66,49 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
         self.score_tab = Score_Tab(self.main_window)
         self.setting_tab = Setting_Tab(self.main_window)
 
-        self.main_window.Schedule_Button.released.connect(self.On_Schedule_Button_clicked)
-        self.main_window.Judge_Button.released.connect(self.On_Judge_Button_clicked)
-        self.main_window.Score_Button.released.connect(self.On_Score_Button_clicked)
-        self.main_window.Setting_Button.released.connect(self.On_Setting_Button_clicked)
-        self.main_window.Close_Button.released.connect(self.On_Close_Button_clicked)
+        self.main_window.Schedule_Button.released.connect(self.On_schedule_button_clicked)
+        self.main_window.Judge_Button.released.connect(self.On_judge_button_clicked)
+        self.main_window.Score_Button.released.connect(self.On_score_button_clicked)
+        self.main_window.Setting_Button.released.connect(self.On_setting_button_clicked)
+        self.main_window.Close_Button.released.connect(self.On_close_button_clicked)
 
-        self.main_window.Week_Select_ComboBox.currentIndexChanged.connect(self.schedule_tab.On_week_select_comboBox_changed)
+        self.show_info_single.connect(self.On_show_info_single)
 
         self.main_window.mousePressEvent = self.Mouse_press_event
         self.main_window.mouseMoveEvent = self.Mouse_move_event
         self.main_window.mouseReleaseEvent = self.Mouse_release_event
 
-    def On_login_successful_signal(self,name,password):
-        self.data_struct_module.name = name
-        self.data_struct_module.password = password
+    def On_show_info_single(self, info, whether_last):
+        '''在Info_Label显示3秒信息'''
+        if whether_last == True:
+            self.main_window.Info_label.setText(info)
+        else:
+            def Set_info(info_label,info):
+                info_label.setText(info)
+                TIME_sleep(3)
+                info_label.setText('')
 
-    def On_login_fail_signal(self):
+            self.info_thread = THREAD_Thread(target = Set_info,args = (self.main_window.Info_label,info,))
+            self.info_thread.start()
 
-    def On_Schedule_Button_clicked(self):
+    def On_schedule_button_clicked(self):
         self.main_window.Main_Tab_Widget.setCurrentIndex(0)
         self.view_manage.Set_tab_button_style_on_click(self.main_window.Schedule_Button)
 
-    def On_Judge_Button_clicked(self):
+    def On_judge_button_clicked(self):
         self.main_window.Main_Tab_Widget.setCurrentIndex(1)
         self.view_manage.Set_tab_button_style_on_click(self.main_window.Judge_Button)
 
-    def On_Score_Button_clicked(self):
+    def On_score_button_clicked(self):
         self.main_window.Main_Tab_Widget.setCurrentIndex(2)
         self.view_manage.Set_tab_button_style_on_click(self.main_window.Score_Button)
 
-    def On_Setting_Button_clicked(self):
+    def On_setting_button_clicked(self):
         self.main_window.Main_Tab_Widget.setCurrentIndex(4)
         self.view_manage.Set_tab_button_style_on_click(self.main_window.Setting_Button)
 
-    def On_Close_Button_clicked(self):
-        self.main_window.close()
+    def On_close_button_clicked(self):
+        self.close()
 
     def Mouse_press_event(self,event):
         '''用来实现窗口拖动'''
@@ -157,7 +159,7 @@ class Main_Window_View:
                                             background: rgba(0,0,0,0.1);
                                         }''')
 
-    def Set_Main_window_style(self):
+    def Set_main_window_style(self):
         self.main_window.setWindowFlag(Qt.FramelessWindowHint)      #隐藏边框
         self.main_window.setAttribute(Qt.WA_TranslucentBackground)  #窗口背景透明，做圆角窗口用的
         self.main_window.setWindowOpacity(0.85)                     #窗口透明度     #TODO:透明度可设置
@@ -182,6 +184,7 @@ class Main_Window_View:
                                                                 color: rgb(255,255,255);
 
                                                                 font-family: 'Microsoft Yahei light';
+                                                                font-size: 18px;
                                                             }
                                                             #Tab_Select_Widget QPushButton:hover{
                                                                 background: rgba(0,0,0,0.08);
@@ -203,6 +206,7 @@ class Main_Window_View:
                                                         color: rgb(255,255,255);
 
                                                         font-family: 'Microsoft Yahei light';
+                                                        font-size: 22px;
                                                     }''')
 
         self.main_window.Close_Button.setStyleSheet('''#Close_Button{
@@ -223,11 +227,18 @@ class Main_Window_View:
 
 
 
-class Data_Struct_Module:
-    ''''管理所有会写入硬盘的数据，包括所有从教务处网页获取的数据'''
-    login_successful_signal = pyqtSignal(str,str)   #由Login_Window发出，告知main_window用户输入了正确的用户名和密码
-    login_fail_signal = pyqtSignal()                #没有登录成功就关闭了Login_Window
-
+class Data_Struct_Module(QMainWindow):
+    '''管理所有会写入硬盘的数据，包括所有从教务处网页获取的数据，继承QMainWindow只是为了使用pyqtSignal
+       很烦的一点就是因为登录耗时很长，所以要单独开个线程免得主窗口卡着不响应用户，
+       而用本地缓存的学号密码登录失败就要开Login_Window重新登录，
+       但是天杀的qt在多线程里开窗口会出问题，就不能在新开的线程里开Login_Window，
+       所以就改用信号槽来曲线救国，
+       然后看着就多余的On_try_login_fail_singal()和On_no_account_in_cache_single()就这么有了,
+       很烦'''
+    no_account_in_cache_single = pyqtSignal()            #由自己发出，本地缓存中没有学号密码时发出
+    try_login_fail_singal = pyqtSignal()                #由自己发出，以本地缓存的学号密码登录失败时发出
+    login_successful_signal = pyqtSignal(str,str,list)  #由Login_Window发出，告知main_window用户输入了正确的用户名和密码，并返回登录成功的浏览器指针，放在list里
+    login_fail_signal = pyqtSignal()                    #没有登录成功就关闭了Login_Window
     class Course:
         def __init__(self,name,teacher,classroom,day,big_class,start_week,end_week,start_class,end_class,type = '非自定义'):
             self.name = name
@@ -252,25 +263,83 @@ class Data_Struct_Module:
                     'start_week':self.start_week,'end_week':self.end_week,'start_class':self.start_class,'end_class':self.end_class,'type':self.type}
 
     def __init__(self,main_window):
+        QMainWindow.__init__(self)
         self.main_window = main_window
 
-        self.login_thread = None
+        self.login_window = None
+        self.background_thread = None   #登录教务处或者显示提示信息几秒后清楚信息用的
 
+        self.bro = None                 #登录用的浏览器
         self.name = ''
         self.password =''
         self.course_list = []           #主课程列表
         self.course_list_temp = []      #用于比对主课程列表与教务处是否一致
 
+        self.no_account_in_cache_single.connect(self.On_no_account_in_cache_single)
+        self.try_login_fail_singal.connect(self.On_try_login_fail_singal)
         self.login_successful_signal.connect(self.On_login_successful_signal)
         self.login_fail_signal.connect(self.On_login_fail_signal)
 
+        self.Get_data_struct_from_disk()
+
+    def On_no_account_in_cache_single(self):
+        self.main_window.show_info_single.emit('请登录账号',True)
+        self.login_window = Login_Window(self)
+        self.login_window.show()
+
+    def On_try_login_fail_singal(self):
+        self.name = ''
+        self.password = ''
+        self.main_window.show_info_single.emit('本地缓存的账号密码登录失败，请重新登录',True)
+        self.login_window = Login_Window(self)
+        self.login_window.show()
+
+    def On_login_successful_signal(self,name,password,bro):
+        self.name = name
+        self.password = password
+
+        self.bro = bro[0]
+        self.Get_course_list_from_web()
+        self.course_list = COPY_copy(self.course_list_temp)
+        self.main_window.schedule_tab.Set_schedule()
+        self.Save_data_struct_to_disk()
+
+        self.login_window.close()
+        self.main_window.show_info_single.emit('课表已更新至最新',False)
+
+    def On_login_fail_signal(self):
+        self.main_window.show_info_single.emit('登录失败，当前的课表可能不是最新的',False)
+
+    def Try_login(self):
+        '''尝试登录教务处，成功返回True并保存bro对象供后续get课表、get成绩、get评教等方法使用，失败返回False'''
+        try:
+            from selenium.webdriver.chrome.options import Options as Chrome_options #搞不懂为啥最前面的import没有生效
+            url = 'http://sso.jwc.whut.edu.cn/Certification/toIndex.do'
+            Chrome_options = Chrome_options()
+            Chrome_options.add_argument('--headless')
+            Chrome_options.add_argument('--disable-gpu')
+            bro = Selenium_webdriver.Chrome('./chromedriver', options=Chrome_options)
+            bro.get(url)
+            bro.find_element_by_id('username').send_keys(self.name)
+            bro.find_element_by_id('password').send_keys(self.password)
+            bro.find_element_by_id('submit_id').click()
+
+            #如果学号密码错误，点击登录按钮并不会报错，还要试一下获取网页内容，看能不能获取登录后的教务处网页，不能就是学号密码错了
+            bro.find_element_by_xpath('//*[@class="main-logo"]')
+        #这里不用管为什么登不上去，只要登不上返回了False就会开Login_Window让用户重新登录，在那里处理咋登不上去
+        except BaseException as e:
+            return False
+        else:
+            self.bro = bro
+            return True
 
     def Get_course_list_from_web(self):
         '''从教务处网站获取课程列表'''
         row_to_columns_dict = {1:3, 2:2, 3:3, 4:1, 5:3}     #表格里每一列的课程起始行数不一样
-        bro = self.main_window.Login()
-        tree = LXML_etree.HTML(bro.execute_script("return document.documentElement.outerHTML"))
-        bro.quit()
+        #能走到这里来那之前就已经登录了，现在浏览器里的页面里就有课程表了
+        tree = LXML_etree.HTML(self.bro.execute_script("return document.documentElement.outerHTML"))
+        self.bro.quit()
+        self.bro = None
 
         def Get_a_course_from_a_row(row):
             '''获取一行的课'''
@@ -314,32 +383,7 @@ class Data_Struct_Module:
         for row in range(1,6):
             Get_a_course_from_a_row(row)
 
-    def Check_course_list_same_to_web(self):
-        #反正涉及到登录就很耗时，就要开个多线程防止主窗口半天不响应用户
-        def Check_data_struct_logic(self):
-            self.main_window.Info_label.setText('正在从教务处获取最新课表')
-            if self.data_struct_module.name == '' or self.data_struct_module.password == '':
-                self.login_window = Login_Window(self.main_window)
-                self.login_window.show()
-                self.main_window.hide()
-                return
-
-
-
-
-
-
-            self.data_struct_module.Get_course_list_from_web()
-
-            if len(self.data_struct_module.course_list) == len(self.data_struct_module.course_list_temp):
-                for i in range(len(self.data_struct_module.course_list)):
-                    if self.data_struct_module.course_list[i] != self.data_struct_module.course_list_temp[i]:
-                        break
-
-        self.login_thread = THREAD_Thread(target = Check_data_struct_logic,args = (self,))
-        self.login_thread.start()
-
-    def Get_Data_Struct_from_disk(self):
+    def Get_data_struct_from_disk(self):
         '''从磁盘获取课程列表，成功返回True，失败返回错误类型'''
         if OS_path.isdir('local_cache') and OS_path.isfile('local_cache\local_cache.json'):
             with open('local_cache\local_cache.json', 'r') as file:
@@ -378,7 +422,7 @@ class Data_Struct_Module:
         else:
             return 'File not found'
 
-    def Save_Data_Struct_to_disk(self):
+    def Save_data_struct_to_disk(self):
         '''保存课程列表到本地'''
         if not OS_path.isdir('local_cache'):
             OS_mkdir('local_cache')
@@ -394,6 +438,45 @@ class Data_Struct_Module:
 
             file.write(data_struct_json)
 
+    def Check_data_same_to_web(self):
+        '''检查本地数据与教务处是否一致'''
+        #开多线程全是因为有个Try_login，反正涉及到登录就很耗时，就开个多线程防止主窗口半天不响应用户
+        def Check_data_logic(self):
+            self.main_window.show_info_single.emit('正在从教务处获取最新课表',True)
+
+            #本地没有保存账号密码，要重新登录
+            if self.name == '' or self.password == '':
+                self.no_account_in_cache_single.emit()
+                return
+
+            #保存了账号密码但是登录失败，要重新登录
+            if not self.Try_login():
+                self.try_login_fail_singal.emit()
+                return
+
+            #登录成功的浏览器对象已经保存在self.bro里了，可以直接Get_course_list_from_web()
+            self.Get_course_list_from_web()
+
+            course_data_same_flag = True
+            if len(self.course_list) == len(self.course_list_temp):
+                for i in range(len(self.course_list)):
+                    if self.course_list[i] != self.course_list_temp[i]:
+                        course_data_same_flag = False
+                        break
+            else:
+                course_data_same_flag = False
+
+            if course_data_same_flag == True:
+                self.main_window.show_info_single.emit('当前课表是最新的',False)
+            else:
+                self.course_list = COPY_copy(self.course_list_temp)
+                self.main_window.schedule_tab.Set_schedule()
+                self.Save_data_struct_to_disk()
+                self.main_window.show_info_single.emit('课表已更新至最新',False)
+
+        self.background_thread = THREAD_Thread(target = Check_data_logic,args = (self,))
+        self.background_thread.start()
+
 
 
 class Schedule_Tab:
@@ -405,8 +488,11 @@ class Schedule_Tab:
         self.view_manage = Schedule_Tab_View(self.main_window)
         self.view_manage.Set_schedule_tab_style()
 
+        now = datetime.now()
         self.current_week = 1   #TODO:自动获取当前时间设置current_week
         self.first_week_date = COPY_copy(FIRST_WEEK_DATE)
+
+        self.main_window.Week_Select_ComboBox.currentIndexChanged.connect(self.On_week_select_comboBox_changed)
 
     def Set_schedule(self):
         '''设置课程表'''
@@ -415,7 +501,7 @@ class Schedule_Tab:
         for weekday_count in range (1,8):
             date = self.first_week_date + DATE_timedelta(7 * (self.current_week - 1) + (weekday_count - 1))
             weekday_label = QLabel(f'{weekday_dict[weekday_count]}\n{date.year}-{date.month}-{date.day}')
-            self.view_manage.Set_Weekday_label_style(weekday_label,weekday_count)
+            self.view_manage.Set_weekday_label_style(weekday_label,weekday_count)
             self.main_window.Schedule_Table_Widget.setCellWidget(0,weekday_count - 1,weekday_label)
 
         #设置表格
@@ -601,7 +687,7 @@ class Schedule_Tab_View:
         self.main_window.Schedule_Table_Widget.setRowHeight(0,74)   #调整第一行行高 #TODO:不要把高度写死成px
         self.main_window.Schedule_Table_Widget.setShowGrid(False)
 
-    def Set_Weekday_label_style(self,weekday_label,x):#TODO:自动跳转到今天并设置更亮的样式
+    def Set_weekday_label_style(self,weekday_label,x):#TODO:自动跳转到今天并设置更亮的样式
         weekday_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)  #文字居中
         weekday_label.setObjectName(f'weekday_label_{x}')
         weekday_label.setStyleSheet( f'#weekday_label_{x}' + '''{

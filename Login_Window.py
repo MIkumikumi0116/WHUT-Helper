@@ -7,7 +7,7 @@ from selenium import webdriver as Selenium_Webdriver
 from selenium.webdriver.chrome.options import Options as Chrome_Options
 
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow, QApplication
 
 from Login_Window_UI import Ui_Login_Window_UI
@@ -16,13 +16,15 @@ from Message_Window import Message_Window
 
 
 class Login_Window(QMainWindow, Ui_Login_Window_UI):
-    '''登录窗口，负责检验用户输入的学号和密码是否正确，仅此而已，main_window中依赖登录的功能仍需再次登录教务处'''
-    def __init__(self,main_window):
+    '''登录窗口，检验用户输入的学号和密码是否正确并把登录成功的学号密码和bro对象返回回去，只与data_struct_model通信'''
+    show_message_single = pyqtSignal(str)
+
+    def __init__(self,data_struct_model):
         QMainWindow.__init__(self)
         self.setupUi(self)
         self.Set_style()
 
-        self.main_window = main_window  #主窗口的指针
+        self.data_struct_model = data_struct_model
 
         self.message_window = None
         self.login_thread = None
@@ -33,6 +35,8 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
 
         self.Login_Button.released.connect(self.On_login_button_clicked)
         self.Close_Button.released.connect(self.On_close_button_clicked)
+
+        self.show_message_single.connect(self.On_show_message_single)
 
         self.mousePressEvent = self.Mouse_press_event
         self.mouseMoveEvent = self.Mouse_move_event
@@ -133,44 +137,62 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
                                                 background: rgba(0,0,0,0.4);
                                             }''')
 
+    def On_show_message_single(self,message):
+        '''打印提示信息并做一些清理工作'''
+        self.message_window = Message_Window(message,self)
+        self.message_window.show()
+
+        self.login_thread = None
+        self.Login_Button.setStyleSheet('''#Login_Button{
+                                                border: 0px;
+                                                border-radius: 20px;
+
+                                                width: 40px;
+                                                height: 40px;
+
+                                                color: rgb(255,255,255);
+                                                background: rgba(0,0,0,0.2);
+
+                                                font-family: 'Microsoft Yahei light';
+                                                font-size: 20px;
+
+                                                outline: none
+                                            }
+                                            #Login_Button:hover{
+                                                background: rgba(0,0,0,0.3);
+                                            }
+                                            #Login_Button:pressed{
+                                                background: rgba(0,0,0,0.4);
+                                            }''')
+
     def On_login_button_clicked(self):
         '''检验学号密码长度对不对，再尝试登录教务处'''
         #已经有个登录线程开起来了，那就不能响应点击登录了
         if self.login_thread != None:
             return
 
-        name = self.Name_LineEdit.text()
-        password = self.Password_LineEdit.text()
-
-        if len(name) == 0:
-            self.message_window = Message_Window('在？不填学号的吗???',self)
-            self.message_window.show()
-            self.hide()
-            return
-        if len(password) == 0:
-            self.message_window = Message_Window('在？不填密码的吗???',self)
-            self.message_window.show()
-            self.hide()
-            return
-        if not RE_match(r'^.{13}$',name):
-            self.message_window = Message_Window('噔   噔   咚\n学号长度不对劲???',self)
-            self.message_window.show()
-            self.hide()
-            return
-        if not RE_match(r'^\d{13}$',name):
-            self.message_window = Message_Window('噔   噔   咚\n学号只有数字的，对吧',self)
-            self.message_window.show()
-            self.hide()
-            return
-        #密码长度4位以上
-        if not RE_match(r'^.{4}.*$',password):
-            self.message_window = Message_Window('噔   噔   咚\n密码长度不对劲???',self)
-            self.message_window.show()
-            self.hide()
-            return
-
         #登录这玩意很耗时，为了防止登录时窗口卡着不响应用户，开个多线程
         def Login_logic(self):
+            name = self.Name_LineEdit.text()
+            password = self.Password_LineEdit.text()
+
+            if len(name) == 0:
+                self.show_message_single.emit('在？不填学号的吗???')
+                return
+            if len(password) == 0:
+                self.show_message_single.emit('在？不填密码的吗???')
+                return
+            if not RE_match(r'^.{13}$',name):
+                self.show_message_single.emit('噔   噔   咚\n学号长度不对劲???')
+                return
+            if not RE_match(r'^\d{13}$',name):
+                self.show_message_single.emit('噔   噔   咚\n学号是只有数字的，对吧')
+                return
+            #密码长度4位以上
+            if not RE_match(r'^.{4}.*$',password):
+                self.show_message_single.emit('噔   噔   咚\n密码长度不对劲???')
+                return
+
             try:
                 url = 'http://sso.jwc.whut.edu.cn/Certification/toIndex.do'
                 chrome_options = Chrome_Options()
@@ -184,40 +206,32 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
 
                 #如果学号密码错误，点击登录按钮并不会报错，还要试一下获取网页内容，看能不能获取登录后的教务处网页，不能就是学号密码错了
                 bro.find_element_by_xpath('//*[@class="main-logo"]')
+
             except BaseException as e:
                 try:
-                    #selenium的Exception是有msg属性的，但非selenium扔出来的Exception就没有，这种就说不准是咋整的报错了
+                    #selenium扔出来的Exception是有msg属性的，但非selenium扔出来的Exception就没有，这种就说不准是咋整的报错了
                     massage = e.msg
                     if RE_search(r'您的密码安全级别过低，请进入教务系统按要求修改密码',massage) or RE_search(r'unexpected alert open',massage):
-                        self.message_window = Message_Window('噔   噔   咚\n学号或者密码错了？？？',self)
-                        self.message_window.show()
-                        self.hide()
+                        self.show_message_single.emit('噔   噔   咚\n学号或者密码错了???')
                         return
-                    if RE_search(r'no such element: Unable to locate element: {"method":"xpath","selector":"//*[@class="main-logo"]"}',massage):
-                        self.message_window = Message_Window('噔   噔   咚\n学号或者密码错了？？？',self)
-                        self.message_window.show()
-                        self.hide()
+                    elif RE_search(r'no such element: Unable to locate element: {"method":"xpath","selector":"//*[@class="main-logo"]"}',massage):
+                        self.show_message_single.emit('噔   噔   咚\n学号或者密码错了???')
                         return
-                    if RE_search(r'unknown error: net::ERR_INTERNET_DISCONNECTED',massage) or RE_search(r'unexpected alert open',massage):
-                        self.message_window = Message_Window('噔   噔   咚\n网不好嘛，打不开教务处网站？？？',self)
-                        self.message_window.show()
-                        self.hide()
+                    elif RE_search(r'unknown error: net::ERR_INTERNET_DISCONNECTED',massage) or RE_search(r'unexpected alert open',massage):
+                        self.show_message_single.emit('噔   噔   咚\n网不好嘛，打不开教务处网站???')
                         return
                     else:
-                        self.message_window = Message_Window('噔   噔   咚\n发生了咱也搞不懂的错误，咱也不知道是咋整的，建议拜拜图灵老爷子，肯定灵（大概）',self)
-                        self.message_window.show()
-                        self.hide()
+                        self.show_message_single.emit('噔   噔   咚\n发生了咱也搞不懂的错误，咱也不知道是咋整的，建议拜拜图灵老爷子，肯定灵（大概）???')
                         return
-
+                #非selenium扔出来Exception
                 except BaseException as e:
-                    self.message_window = Message_Window('噔   噔   咚\n发生了咱也搞不懂的错误，咱也不知道是咋整的，建议拜拜图灵老爷子，肯定灵（大概）',self)
-                    self.message_window.show()
-                    self.hide()
+                    self.show_message_single.emit('噔   噔   咚\n发生了咱也搞不懂的错误，咱也不知道是咋整的，建议拜拜图灵老爷子，肯定灵（大概）???')
                     return
 
-                bro.quit()
-                self.login_thread = None
-                self.Login_Button.setStyleSheet('''#Login_Button{
+                finally:
+                    bro.quit()
+                    self.login_thread = None
+                    self.Login_Button.setStyleSheet('''#Login_Button{
                                                         border: 0px;
                                                         border-radius: 20px;
 
@@ -241,10 +255,8 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
 
             else:
                 #没报错就是登录成功了
-                self.main_window.login_successful_signal.emit(name,password)
+                self.data_struct_model.login_successful_signal.emit(name, password, [bro])
                 self.message_window = None  #如果有没有关闭的消息窗口，就会被垃圾回收强行清理掉
-                self.main_window.show()
-                self.close()
 
         self.login_thread = THREAD_Thread(target = Login_logic,args = (self,))
         self.login_thread.start()
@@ -271,9 +283,8 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
                                             }''')
 
     def On_close_button_clicked(self):
-        self.main_window.login_fail_signal.emit()
+        self.data_struct_model.login_fail_signal.emit()
         self.message_window = None  #如果有没有关闭的消息窗口，就会被垃圾回收强行清理掉
-        self.main_window.show()
         self.close()
 
     def Mouse_press_event(self,event):
@@ -298,6 +309,6 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
 
 if __name__ == '__main__':
     app = QApplication(SYS_argv)
-    login_Window = Login_Window()
+    login_Window = Login_Window(None)
     login_Window.show()
     SYS_exit(app.exec_())

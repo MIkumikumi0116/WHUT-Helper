@@ -23,6 +23,10 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
 
         self.Massage_Label.setText(massage)
 
+        self.mousePressEvent = self.Mouse_press_event
+        self.mouseMoveEvent = self.Mouse_move_event
+        self.mouseReleaseEvent = self.Mouse_release_event
+
     def Set_style(self):
         self.setWindowFlag(Qt.FramelessWindowHint)      #隐藏边框
         self.setAttribute(Qt.WA_TranslucentBackground)  #窗口背景透明，做圆角窗口用的
@@ -95,6 +99,23 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
         self.parent_window.show()
         self.close()
 
+    def Mouse_press_event(self,event):
+        '''用来实现窗口拖动'''
+        if event.pos().y() <= 30:
+            self.drag_first_point = event.pos()
+            self.setCursor(Qt.ClosedHandCursor)
+            self.darging = True
+
+    def Mouse_move_event(self,event):
+        '''用来实现窗口拖动'''
+        if self.darging:
+            self.drag_second_point = event.pos()
+            self.move(self.pos() + (self.drag_second_point - self.drag_first_point))
+
+    def Mouse_release_event(self, event):
+        '''用来实现窗口拖动'''
+        self.setCursor(Qt.ArrowCursor)
+        self.darging = False
 
 if __name__ == '__main__':
     app = QApplication(SYS_argv)

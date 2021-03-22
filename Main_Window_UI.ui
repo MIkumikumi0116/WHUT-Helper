@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Main_Window_UI</class>
+ <widget class="QMainWindow" name="Main_Window_UI">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>800</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>WHUT-Helper</string>
+  </property>
+  <widget class="QWidget" name="Central_Widget">
+   <layout class="QVBoxLayout" name="Central_Widget_Layout">
+    <item>
+     <widget class="QWidget" name="Tab_Select_Widget" native="true">
+      <layout class="QHBoxLayout" name="Tab_Select_Widget_Layout">
+       <item>
+        <widget class="QPushButton" name="Schedule_Button">
+         <property name="text">
+          <string>课表</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="Judge_Button">
+         <property name="text">
+          <string>评教</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="Score_Button">
+         <property name="text">
+          <string>成绩</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="Setting_Button">
+         <property name="text">
+          <string>设置</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="Info_label">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="Close_Button">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="All_res.qrc">
+           <normaloff>:/all_images/res/Exit.png</normaloff>:/all_images/res/Exit.png</iconset>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QStackedWidget" name="Main_Tab_Widget">
+      <widget class="QWidget" name="Schedule_Tab">
+       <layout class="QVBoxLayout" name="Schedule_Tab_Layout">
+        <item>
+         <layout class="QHBoxLayout" name="Week_Select_Layout">
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QComboBox" name="Week_Select_ComboBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <item>
+             <property name="text">
+              <string>第 1 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 2 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 3 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 4 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 5 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 6 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 7 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 8 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 9 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 10 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 11 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 12 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 13 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 14 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 15 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 16 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 17 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 18 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 19 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 20 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 21 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 22 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 23 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 24 周</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>第 25 周</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QWidget" name="Schedule_Table_Containers" native="true">
+          <layout class="QVBoxLayout" name="Schedule_Table_Containers_Layout">
+           <item>
+            <widget class="QWidget" name="Schedule_Table_Mask" native="true">
+             <layout class="QVBoxLayout" name="Schedule_Table_Mask_Layout">
+              <item>
+               <widget class="QTableWidget" name="Schedule_Table_Widget">
+                <property name="focusPolicy">
+                 <enum>Qt::NoFocus</enum>
+                </property>
+                <property name="verticalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAlwaysOff</enum>
+                </property>
+                <property name="horizontalScrollBarPolicy">
+                 <enum>Qt::ScrollBarAlwaysOff</enum>
+                </property>
+                <property name="editTriggers">
+                 <set>QAbstractItemView::NoEditTriggers</set>
+                </property>
+                <property name="selectionMode">
+                 <enum>QAbstractItemView::NoSelection</enum>
+                </property>
+                <property name="rowCount">
+                 <number>6</number>
+                </property>
+                <property name="columnCount">
+                 <number>7</number>
+                </property>
+                <row/>
+                <row/>
+                <row/>
+                <row/>
+                <row/>
+                <row/>
+                <column/>
+                <column/>
+                <column/>
+                <column/>
+                <column/>
+                <column/>
+                <column/>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="Judge_Tab">
+       <layout class="QVBoxLayout" name="Judge_Tab_Layout">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="Score_Tab">
+       <layout class="QHBoxLayout" name="Score_Tab_Layout">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_2"/>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="Setting_Tab">
+       <layout class="QHBoxLayout" name="Setting_Tab_Layout">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_4"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources>
+  <include location="All_Res.qrc"/>
+ </resources>
+ <connections/>
+</ui>

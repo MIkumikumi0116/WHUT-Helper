@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="all_images">
+    <file>res/Down_Arrow.png</file>
+    <file>res/Exit.png</file>
+    <file>res/Login_Window_Background.png</file>
+    <file>res/Main_Window_Background.png</file>
+    <file>res/Message_Window_Background.png</file>
+  </qresource>
+</RCC>

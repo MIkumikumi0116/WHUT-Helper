@@ -1,0 +1,748 @@
+from os import path as OS_path
+from os import mkdir as OS_mkdir
+from sys import argv as SYS_argv
+from sys import exit as SYS_exit
+from copy import copy as COPY_copy
+from re import findall as RE_findall
+from lxml import etree as LXML_etree
+from time import sleep as TIME_Sleep
+from json import loads as JSON_loads
+from json import dumps as JSON_dumps
+from datetime import date as DATE_date
+from threading import Thread as THREAD_Thread
+from datetime import timedelta as DATE_timedelta
+from selenium import webdriver as Selenium_Webdriver
+from selenium.webdriver.chrome.options import Options as Chrome_Options
+
+
+from PyQt5.QtCore import Qt,pyqtSignal
+from PyQt5.QtGui import QBitmap, QPainter
+from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QHeaderView, QListView
+
+from Main_Window_UI import Ui_Main_Window_UI
+from Login_Window import Login_Window
+from Message_Window import Message_Window
+
+FIRST_WEEK_DATE = DATE_date(2021,3,1)
+
+
+
+class Main_Window(QMainWindow, Ui_Main_Window_UI):
+    '''管理窗口控件、所有模块公用的逻辑、主业务逻辑'''
+    def __init__(self): #TODO:登录逻辑要改
+        QMainWindow.__init__(self)
+        #设置窗口样式、设置激励与响应等构造方法中不包含业务逻辑的部分
+        self.Main_window_init()
+
+        self.darging = False
+        self.drag_first_point = None
+        self.drag_second_point = None
+
+        self.login_window = None    #为避免垃圾回收把窗口搞没了，留一个指向窗口的指针
+        self.message_window = None
+
+        self.data_struct_module.Get_Data_Struct_from_disk()
+        #联网获取课表耗时很长，另外开个线程免得主窗口卡着不动了
+        t = THREAD_Thread(target = self.data_struct_module.Check_course_list_same_to_web)
+        t.start()
+
+        #self.data_struct_module.course_list = self.data_struct_module.course_list_temp
+        self.schedule_tab.Set_schedule()
+        #t = THREAD_Thread(target = self.Check_course_list_same_to_web)
+        #t.start()
+
+        #self.data_struct_module.Save_Data_Struct_to_disk()
+
+    def Main_window_init(self):
+        '''构造方法中不包含业务逻辑的部分，如设置窗口样式、设置激励与响应等'''
+        self.setupUi(self)
+
+        self.main_window = self #各个模块访问窗口里的控件或与窗口有关的方法（设置鼠标样式之类的）和全局变量
+                                #都统一通过模块各自的main_window指针访问
+                                #各模块的main_window指针在构造函数里都指到主窗口去
+
+        self.view_manage = Main_Window_View(self.main_window)
+        self.view_manage.Set_Main_window_style()
+
+        self.data_struct_module = Data_Struct_Module(self.main_window)
+
+        self.schedule_tab = Schedule_Tab(self.main_window)
+        self.judge_tab = Judge_Tab(self.main_window)
+        self.score_tab = Score_Tab(self.main_window)
+        self.setting_tab = Setting_Tab(self.main_window)
+
+        self.main_window.Schedule_Button.released.connect(self.On_Schedule_Button_clicked)
+        self.main_window.Judge_Button.released.connect(self.On_Judge_Button_clicked)
+        self.main_window.Score_Button.released.connect(self.On_Score_Button_clicked)
+        self.main_window.Setting_Button.released.connect(self.On_Setting_Button_clicked)
+        self.main_window.Close_Button.released.connect(self.On_Close_Button_clicked)
+
+        self.main_window.Week_Select_ComboBox.currentIndexChanged.connect(self.schedule_tab.On_week_select_comboBox_changed)
+
+        self.main_window.mousePressEvent = self.Mouse_press_event
+        self.main_window.mouseMoveEvent = self.Mouse_move_event
+        self.main_window.mouseReleaseEvent = self.Mouse_release_event
+
+    def On_login_successful_signal(self,name,password):
+        self.data_struct_module.name = name
+        self.data_struct_module.password = password
+
+    def On_login_fail_signal(self):
+
+    def On_Schedule_Button_clicked(self):
+        self.main_window.Main_Tab_Widget.setCurrentIndex(0)
+        self.view_manage.Set_tab_button_style_on_click(self.main_window.Schedule_Button)
+
+    def On_Judge_Button_clicked(self):
+        self.main_window.Main_Tab_Widget.setCurrentIndex(1)
+        self.view_manage.Set_tab_button_style_on_click(self.main_window.Judge_Button)
+
+    def On_Score_Button_clicked(self):
+        self.main_window.Main_Tab_Widget.setCurrentIndex(2)
+        self.view_manage.Set_tab_button_style_on_click(self.main_window.Score_Button)
+
+    def On_Setting_Button_clicked(self):
+        self.main_window.Main_Tab_Widget.setCurrentIndex(4)
+        self.view_manage.Set_tab_button_style_on_click(self.main_window.Setting_Button)
+
+    def On_Close_Button_clicked(self):
+        self.main_window.close()
+
+    def Mouse_press_event(self,event):
+        '''用来实现窗口拖动'''
+        if event.pos().y() <= self.main_window.Main_Tab_Widget.geometry().y():
+            self.drag_first_point = event.pos()
+            self.main_window.setCursor(Qt.ClosedHandCursor)
+            self.darging = True
+
+    def Mouse_move_event(self,event):
+        '''用来实现窗口拖动'''
+        if self.darging:
+            self.drag_second_point = event.pos()
+            self.main_window.move(self.main_window.pos() + (self.drag_second_point - self.drag_first_point))
+
+    def Mouse_release_event(self, event):
+        '''用来实现窗口拖动'''
+        self.main_window.setCursor(Qt.ArrowCursor)
+        self.darging = False
+
+class Main_Window_View:
+    '''管理主窗口样式，对控件样式，按深度优先便利控件树的顺序设置各控件样式，下同'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+
+    def Set_tab_button_style_on_click(self,clicked_button):
+        '''Tab栏按钮按下时，设置被按下按钮和其他按钮的样式'''
+        stander_style = '''{
+                            background: rgba(0,0,0,0.06);
+                        }'''
+        stander_style_hover = ''':hover{
+                                    background: rgba(0,0,0,0.8);
+                                }'''
+        stander_style_pressed = ''':pressed{
+                                        background: rgba(0,0,0,0.1);
+                                    }'''
+
+        button_name_list = [(self.main_window.Schedule_Button,'Schedule_Button'),
+                            (self.main_window.Judge_Button,'Judge_Button'),
+                            (self.main_window.Score_Button,'Score_Button'),
+                            (self.main_window.Setting_Button,'Setting_Button')]
+
+        for button,name in button_name_list:
+            button.setStyleSheet('''#{name}{stander_style}
+                                    #{name}{stander_style_hover}
+                                    #{name}{stander_style_pressed}''')
+
+        clicked_button.setStyleSheet(f'#{[i for i in button_name_list if i[0] == clicked_button][0][1]}' + '''{
+                                            background: rgba(0,0,0,0.1);
+                                        }''')
+
+    def Set_Main_window_style(self):
+        self.main_window.setWindowFlag(Qt.FramelessWindowHint)      #隐藏边框
+        self.main_window.setAttribute(Qt.WA_TranslucentBackground)  #窗口背景透明，做圆角窗口用的
+        self.main_window.setWindowOpacity(0.85)                     #窗口透明度     #TODO:透明度可设置
+
+        self.main_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                            border-radius: 50px;
+
+                                                            border-image: url(:/all_images/res/Main_Window_Background.png);
+                                                        }''')
+        self.main_window.Central_Widget_Layout.setContentsMargins(10,20,10,10)
+        self.main_window.Central_Widget_Layout.setSpacing(0)
+
+        self.main_window.Tab_Select_Widget.setStyleSheet('''#Tab_Select_Widget QPushButton{
+                                                                padding: 5px;
+                                                                border-top-left-radius: 20px;
+                                                                border-top-right-radius: 20px;
+
+                                                                width: 80px;
+                                                                height: 20px;
+
+                                                                background: rgba(0,0,0,0.06);
+                                                                color: rgb(255,255,255);
+
+                                                                font-family: 'Microsoft Yahei light';
+                                                            }
+                                                            #Tab_Select_Widget QPushButton:hover{
+                                                                background: rgba(0,0,0,0.08);
+                                                            }
+                                                            #Tab_Select_Widget QPushButton:pressed{
+                                                                background: rgba(0,0,0,0.1);
+                                                            }''')
+        self.main_window.Tab_Select_Widget_Layout.setContentsMargins(0,0,0,0)
+        self.main_window.Tab_Select_Widget_Layout.setSpacing(0)
+
+        #初始时Schedule_Tab被选中，因此设置Schedule_Button的选中样式
+        self.main_window.Schedule_Button.setStyleSheet('''#Schedule_Button {
+                                                            background: rgba(0,0,0,0.1);
+                                                        }''')
+
+        self.main_window.Info_label.setStyleSheet('''#Info_label {
+                                                        margin-right:40px;
+
+                                                        color: rgb(255,255,255);
+
+                                                        font-family: 'Microsoft Yahei light';
+                                                    }''')
+
+        self.main_window.Close_Button.setStyleSheet('''#Close_Button{
+                                                            padding: 0px;
+
+                                                            border-top-left-radius: 15px;
+                                                            border-top-right-radius: 15px;
+
+                                                            background: rgba(0,0,0,0.1);
+
+                                                            width: 30px;
+                                                            height: 30px;
+                                                        }''')
+
+        self.main_window.Main_Tab_Widget.setStyleSheet('''#Main_Tab_Widget:pane{
+                                                            border: 0px;
+                                                        }''')#TODO:这样子把间距写死成多少像素很不优雅，高分屏用户会哭的
+
+
+
+class Data_Struct_Module:
+    ''''管理所有会写入硬盘的数据，包括所有从教务处网页获取的数据'''
+    login_successful_signal = pyqtSignal(str,str)   #由Login_Window发出，告知main_window用户输入了正确的用户名和密码
+    login_fail_signal = pyqtSignal()                #没有登录成功就关闭了Login_Window
+
+    class Course:
+        def __init__(self,name,teacher,classroom,day,big_class,start_week,end_week,start_class,end_class,type = '非自定义'):
+            self.name = name
+            self.teacher = 'None' if teacher == '' else teacher
+            self.classroom = classroom
+            self.day = day
+            self.big_class = big_class
+            self.start_week = start_week
+            self.end_week = end_week
+            self.start_class = start_class
+            self.end_class = end_class
+            self.type = type
+
+        def __eq__(self,other):
+            if JSON_dumps(self.To_dict()) == JSON_dumps(other.To_dict()):
+                return True
+            else:
+                return False
+
+        def To_dict(self):
+            return {'name':self.name,'teacher':self.teacher,'classroom':self.classroom,'day':self.day,'big_class':self.big_class,
+                    'start_week':self.start_week,'end_week':self.end_week,'start_class':self.start_class,'end_class':self.end_class,'type':self.type}
+
+    def __init__(self,main_window):
+        self.main_window = main_window
+
+        self.login_thread = None
+
+        self.name = ''
+        self.password =''
+        self.course_list = []           #主课程列表
+        self.course_list_temp = []      #用于比对主课程列表与教务处是否一致
+
+        self.login_successful_signal.connect(self.On_login_successful_signal)
+        self.login_fail_signal.connect(self.On_login_fail_signal)
+
+
+    def Get_course_list_from_web(self):
+        '''从教务处网站获取课程列表'''
+        row_to_columns_dict = {1:3, 2:2, 3:3, 4:1, 5:3}     #表格里每一列的课程起始行数不一样
+        bro = self.main_window.Login()
+        tree = LXML_etree.HTML(bro.execute_script("return document.documentElement.outerHTML"))
+        bro.quit()
+
+        def Get_a_course_from_a_row(row):
+            '''获取一行的课'''
+            for col_count in range(row_to_columns_dict[row],row_to_columns_dict[row] + 7 if row != 4 else row_to_columns_dict[row] + 8):
+                td = tree.xpath(f'/html/body/div/div[1]/div[2]/div/div/div[2]/div[2]/div/table/tbody[2]/tr[{row}]/td[{str(col_count)}]')[0]
+                anchors = td.xpath('./div/a')
+
+                for a in anchors:
+                    course_info = a.xpath('./text()') + a.xpath('./p/text()')
+                    course_info = list(map(lambda str:str.replace('\n', '').replace('\t', ''),course_info))
+
+                    while '' in course_info:
+                        course_info.remove('')
+
+                    if len(course_info) != 0:
+                        Generate_course_object(course_info,col_count - (row_to_columns_dict[row] - 1) if row != 4 else col_count - row_to_columns_dict[row],row)
+                        #不知道为啥第四行不一样 #TODO:测试第五行
+
+        def Generate_course_object(course_info,day,big_class):
+            '''根据由教务处网页获取的信息生成一个course对象，放入target_course_list'''
+            name = course_info[0]
+            teacher = '' #TODO:爬老师下来
+            classroom = course_info[1].replace('@', '')
+            day = day               #course_info是务处课程表中课程的文本，不包含大节和星期几
+            big_class = big_class   #这两项信息由课程在课程表中的横纵位置指定，并作为参数传进来
+
+            start_week = RE_findall(r'第0?(\d+)-', course_info[2])[0]
+            start_week = eval(start_week)
+
+            end_week = RE_findall(r'-0?(\d+)周', course_info[2])[0]
+            end_week = eval(end_week)
+
+            start_class = RE_findall(r'\((\d+)-', course_info[2])[0]
+            start_class = eval(start_class)
+
+            end_class = RE_findall(r'-(\d+)节', course_info[2])[0]
+            end_class = eval(end_class)
+
+            self.course_list_temp.append(Data_Struct_Module.Course(name,teacher,classroom,day,big_class,start_week,end_week,start_class,end_class))
+
+        for row in range(1,6):
+            Get_a_course_from_a_row(row)
+
+    def Check_course_list_same_to_web(self):
+        #反正涉及到登录就很耗时，就要开个多线程防止主窗口半天不响应用户
+        def Check_data_struct_logic(self):
+            self.main_window.Info_label.setText('正在从教务处获取最新课表')
+            if self.data_struct_module.name == '' or self.data_struct_module.password == '':
+                self.login_window = Login_Window(self.main_window)
+                self.login_window.show()
+                self.main_window.hide()
+                return
+
+
+
+
+
+
+            self.data_struct_module.Get_course_list_from_web()
+
+            if len(self.data_struct_module.course_list) == len(self.data_struct_module.course_list_temp):
+                for i in range(len(self.data_struct_module.course_list)):
+                    if self.data_struct_module.course_list[i] != self.data_struct_module.course_list_temp[i]:
+                        break
+
+        self.login_thread = THREAD_Thread(target = Check_data_struct_logic,args = (self,))
+        self.login_thread.start()
+
+    def Get_Data_Struct_from_disk(self):
+        '''从磁盘获取课程列表，成功返回True，失败返回错误类型'''
+        if OS_path.isdir('local_cache') and OS_path.isfile('local_cache\local_cache.json'):
+            with open('local_cache\local_cache.json', 'r') as file:
+                data_struct_json = file.read()
+            if len(data_struct_json) == 0:
+                return 'File empty'
+
+            try:
+                data_struct_dict = JSON_loads(data_struct_json)
+                #验证这些字段是否存在
+                data_struct_dict['name']
+                data_struct_dict['password']
+                data_struct_dict['course_list']
+
+                course_list = []
+                for course_json in data_struct_dict['course_list']:
+                    course_dict = JSON_loads(course_json)
+                    course_list.append(Data_Struct_Module.Course(course_dict['name'],course_dict['teacher'],course_dict['classroom'],course_dict['day'],course_dict['big_class'],
+                                                                 course_dict['start_week'],course_dict['end_week'],course_dict['start_class'],course_dict['end_class']))
+
+            except  BaseException as e:
+                #文件有问题，清空文件
+                with open('local_cache\course_cache.txt', 'w') as file:
+                    file.write('')
+                return 'Wrong in file'
+            else:
+                self.name = data_struct_dict['name']
+                self.password = data_struct_dict['password']
+                self.course_list = course_list
+                if len(self.course_list) > 0:
+                    return True
+                else:
+                    return 'Empty course list'
+
+        #没找到文件
+        else:
+            return 'File not found'
+
+    def Save_Data_Struct_to_disk(self):
+        '''保存课程列表到本地'''
+        if not OS_path.isdir('local_cache'):
+            OS_mkdir('local_cache')
+
+        with open('local_cache\local_cache.json', 'w') as file:
+            course_list_json = []
+            for course in self.course_list:
+                course_info = JSON_dumps(course.To_dict())
+                course_list_json.append(course_info)
+
+            data_struct_dict = {'name':self.name,'password':self.password,'course_list':course_list_json}
+            data_struct_json = JSON_dumps(data_struct_dict)
+
+            file.write(data_struct_json)
+
+
+
+class Schedule_Tab:
+    '''管理课表Tab的逻辑'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+        self.data_struct_module = self.main_window.data_struct_module
+
+        self.view_manage = Schedule_Tab_View(self.main_window)
+        self.view_manage.Set_schedule_tab_style()
+
+        self.current_week = 1   #TODO:自动获取当前时间设置current_week
+        self.first_week_date = COPY_copy(FIRST_WEEK_DATE)
+
+    def Set_schedule(self):
+        '''设置课程表'''
+        #设置表头，很难用qss精确控制qTableWidget的每一个单元格的样式，所以直接用qLabel画单元格，给qLabel写样式
+        weekday_dict = {1:'星期一', 2:'星期二', 3:'星期三', 4:'星期四', 5:'星期五', 6:'星期六', 7:'星期天'}
+        for weekday_count in range (1,8):
+            date = self.first_week_date + DATE_timedelta(7 * (self.current_week - 1) + (weekday_count - 1))
+            weekday_label = QLabel(f'{weekday_dict[weekday_count]}\n{date.year}-{date.month}-{date.day}')
+            self.view_manage.Set_Weekday_label_style(weekday_label,weekday_count)
+            self.main_window.Schedule_Table_Widget.setCellWidget(0,weekday_count - 1,weekday_label)
+
+        #设置表格
+        course_count = 0
+        blank_count = 0
+        #逐个设置表格
+        for x in range(1,8):
+            for y in range(1,6):
+                course_find_flag = False
+
+                for course in self.data_struct_module.course_list:
+                    #若这个课时有本周的课
+                    if course.day == x and course.big_class == y and (course.start_week <= self.current_week and self.current_week <= course.end_week):
+                        course_label = QLabel(f'{course.name}\n{course.start_week}-{course.end_week}周 {course.start_class}-{course.end_class}节\n{course.classroom})')
+                        self.view_manage.Set_course_label_style(course_label,course,course_count,self.current_week,x,y)
+                        self.main_window.Schedule_Table_Widget.setCellWidget(y,x - 1,course_label)  #因表头占据了表格的第0行，所以y需加1
+
+                        course_count += 1
+
+                        course_find_flag = True
+                        break
+
+                #若没有本周的课，但有其他周的课,选上课周离当前周最近的
+                if not course_find_flag:
+                    course_list_temp = []
+
+                    for course in self.data_struct_module.course_list:
+                        if course.day == x and course.big_class == y:
+                            course_list_temp.append(course)
+
+                    if len(course_list_temp) > 0:
+                        #上课时间与当前周之差
+                        course_list_week_difference = list(map(lambda course:course.start_week - self.current_week if course.start_week > self.current_week else self.current_week - course.end_week, course_list_temp))
+
+                        course = course_list_temp[course_list_week_difference.index(min(course_list_week_difference))]
+                        course_label = QLabel(f'{course.name}\n{course.start_week}-{course.end_week}周{course.start_class}-{course.end_class}节\n{course.classroom})')
+                        self.view_manage.Set_course_label_style(course_label,course,course_count,self.current_week,x,y)
+                        self.main_window.Schedule_Table_Widget.setCellWidget(y,x - 1,course_label)  #因表头占据了表格的第0行，所以y需加1
+
+                        course_count += 1
+
+                        course_find_flag = True
+
+                #若这个课时没有课
+                if not course_find_flag:
+                    blank_label = QLabel('')
+                    self.view_manage.Set_blank_label_style(blank_label,blank_count,x,y)
+                    self.main_window.Schedule_Table_Widget.setCellWidget(y,x - 1,blank_label)
+
+                    blank_count += 1
+
+    def On_week_select_comboBox_changed(self,index):
+        self.current_week = index + 1
+        self.Set_schedule()
+
+class Schedule_Tab_View:
+    '''管理课表Tab的样式'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+        self.Color_List = [[57,197,187],[255,165,0],[255,226,17],[255,192,203],[216,0,0],[0,0,255],[102,204,255]]   #课程表一周各天的颜色
+
+    def Set_schedule_tab_style(self):
+        self.main_window.Schedule_Tab.setStyleSheet('''#Schedule_Tab{
+                                                        border: 0px;
+                                                        border-radius: 40px;
+                                                        border-top-left-radius: 0px;
+                                                        border-top-right-radius: 0px;
+
+                                                        background: rgba(0,0,0,0.1);
+                                                    }''')
+        self.main_window.Schedule_Tab_Layout.setContentsMargins(10,10,10,10)
+        self.main_window.Schedule_Tab_Layout.setSpacing(10)
+
+        self.main_window.Week_Select_Layout.setContentsMargins(0,0,0,0)
+        self.main_window.Week_Select_Layout.setSpacing(0)
+
+        self.main_window.Week_Select_ComboBox.setStyleSheet('''#Week_Select_ComboBox{
+                                                                padding-left: 20px;
+                                                                border-radius: 20px;
+
+                                                                width: 72px;
+                                                                height: 40px;
+
+                                                                color: rgb(255,255,255);
+                                                                background: rgba(0,0,0,0.3);
+
+                                                                font-family: 'Microsoft Yahei light';
+                                                            }
+                                                            #Week_Select_ComboBox::drop-down{
+                                                                border-left-width: 1px;
+                                                                border-right-width: 1px;
+                                                                margin-right: 10px;
+
+                                                                width: 20px;
+                                                            }
+                                                            #Week_Select_ComboBox::down-arrow{
+                                                                image: url(:/all_images/res/Down_Arrow.png)
+                                                            }
+                                                            #Week_Select_ComboBox QAbstractItemView {
+                                                                margin-top: 1px;
+                                                            }''')
+
+        #设置选周下拉框的样式
+        QApplication.setEffectEnabled(Qt.UI_AnimateCombo, False)    #禁用弹出动画
+        self.main_window.Week_Select_ComboBox.view().parentWidget().setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)   #下拉框背景透明
+        self.main_window.Week_Select_ComboBox.view().parentWidget().setAttribute(Qt.WA_TranslucentBackground)                                       #下拉框背景透明
+
+        for i in range(self.main_window.Week_Select_ComboBox.count()):
+            self.main_window.Week_Select_ComboBox.setItemData(i, Qt.AlignCenter, Qt.TextAlignmentRole)  #下拉文本居中
+
+        comboBox_view = QListView()
+        comboBox_view.setObjectName('Week_Select_ComboBox_View')
+        comboBox_view.setStyleSheet('''#Week_Select_ComboBox_View{
+                                            padding: 5px;
+                                            border: 0px;
+                                            border-radius: 20px;
+
+                                            background: rgba(0,0,0,0.4);
+
+                                            outline: 0px;
+                                        }
+                                        #Week_Select_ComboBox_View::item{
+                                            border: 0px;
+                                            border-radius: 15px;
+
+                                            height: 30px;
+
+                                            color: rgb(200,200,200);
+
+                                            font-family: 'Microsoft Yahei light';
+                                        }
+                                        #Week_Select_ComboBox_View::item:hover{
+                                            background: rgba(135,206,235,0.3);
+                                        }
+                                        #Week_Select_ComboBox_View::item:selected{
+                                            background: rgba(135,206,235,0.3);
+                                        }''')
+        comboBox_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)     #隐藏滚动条
+
+        self.main_window.Week_Select_ComboBox.setView(comboBox_view)
+
+
+        self.main_window.Schedule_Table_Containers.setStyleSheet('''#Schedule_Table_Containers{
+                                                                        border: 0px;
+                                                                        border-radius: 30px;
+
+                                                                        background: rgba(0,0,0,0.15);
+                                                                    }''')
+        self.main_window.Schedule_Table_Containers_Layout.setContentsMargins(10,10,10,10)
+        self.main_window.Schedule_Table_Containers_Layout.setSpacing(0)
+
+        self.main_window.Schedule_Table_Mask.setStyleSheet('''#Schedule_Table_Mask{
+                                                                    border: 0px;
+                                                                    border-radius: 20px;
+
+                                                                    background: rgba(0,0,0,0);
+                                                                }''')
+        self.main_window.Schedule_Table_Mask_Layout.setContentsMargins(0,0,0,0)
+        self.main_window.Schedule_Table_Mask_Layout.setSpacing(0)
+
+        #设置表格的圆角遮罩
+        self.main_window.showNormal()   #强制刷新窗口以应用样式，从而获得受样式调整后的控件尺寸
+        mask = QBitmap(self.main_window.Schedule_Table_Mask.width(),self.main_window.Schedule_Table_Mask.height())
+        mask.fill()
+        #画个和表格一样大的圆角矩形做遮罩
+        mask_painter = QPainter(mask)
+        mask_painter.setBrush(Qt.black)
+        mask_painter.setPen(Qt.NoPen)
+        mask_painter.setRenderHint(QPainter.Antialiasing)
+        mask_painter.drawRoundedRect(mask.rect(),20,20)
+        mask_painter.end()
+        self.main_window.Schedule_Table_Mask.setMask(mask)
+
+        self.main_window.Schedule_Table_Widget.setStyleSheet('''#Schedule_Table_Widget{
+                                                                    border: 0px;
+
+                                                                    background: rgba(0,0,0,0);
+                                                                }''')
+        self.main_window.Schedule_Table_Widget.horizontalHeader().setVisible(False)
+        self.main_window.Schedule_Table_Widget.verticalHeader().setVisible(False)
+        self.main_window.Schedule_Table_Widget.verticalHeader().setDefaultSectionSize(193)
+        self.main_window.Schedule_Table_Widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) #自动伸展表格各列
+        self.main_window.Schedule_Table_Widget.setRowHeight(0,74)   #调整第一行行高 #TODO:不要把高度写死成px
+        self.main_window.Schedule_Table_Widget.setShowGrid(False)
+
+    def Set_Weekday_label_style(self,weekday_label,x):#TODO:自动跳转到今天并设置更亮的样式
+        weekday_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)  #文字居中
+        weekday_label.setObjectName(f'weekday_label_{x}')
+        weekday_label.setStyleSheet( f'#weekday_label_{x}' + '''{
+                                        border: 0px;
+                                        border-radius: 20px;
+                                        margin: 5px;
+                                        margin-top: 0px;''' +
+                                        f'{"margin-left: 0px;" if x == 1 else ""}' +
+                                        f'{"margin-right: 0px;" if x == 7 else ""}' + '''
+
+                                        min-height: 60px;
+
+                                        background: rgba(0,0,0,0.3);
+                                        color: rgb(255,255,255);
+
+                                        font-family: 'Microsoft Yahei light';
+                                    }''')
+
+    def Set_course_label_style(self,course_label,course,count,current_week,x,y):
+        course_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)  #文字居中
+        course_label.setWordWrap(True)  #自动换行
+        course_label.setObjectName(f'course_label_{count}')
+        color = self.Color_List[course.day - 1] + [0.4] \
+            if course.start_week <= current_week and current_week <= course.end_week \
+            else [0,0,0,0.2]
+        course_label.setStyleSheet( f'#course_label_{count}' + '''{
+                                        border: 0px;
+                                        border-radius: 20px;
+                                        margin: 5px;''' +
+                                        f'{"margin-left: 0px;" if x == 1 else ""}' +
+                                        f'{"margin-right: 0px;" if x == 7 else ""}' +
+                                        f'{"margin-bottom: 0px;" if y == 5 else ""}' +
+                                        f'{"margin-bottom: 71px;" if course.end_class - course.start_class == 1 else " "}' +
+
+                                        f'background: rgba({color[0]},{color[1]},{color[2]},{color[3]}); ' + '''
+                                        color: rgb(255,255,255);
+
+                                        font-family: 'Microsoft Yahei light';
+                                    }''')
+
+    def Set_blank_label_style(self,blank_label,count,x,y):
+        blank_label.setObjectName(f'blank_label_{count}')
+        blank_label.setStyleSheet(f'#blank_label_{count}' + '''{
+                                        border: 0px;
+                                        border-radius: 20px;
+                                        margin: 5px;''' +
+                                        f'{"margin-left: 0px;" if x == 1 else ""}' +
+                                        f'{"margin-right: 0px;" if x == 7 else ""}' +
+                                        f'{"margin-bottom: 0px;" if y == 5 else ""}' + '''
+
+                                        background: rgba(0,0,0,0.2);
+                                    }''')
+
+
+
+class Judge_Tab:
+    '''管理评教Tab的逻辑'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+        self.data_struct_module = self.main_window.data_struct_module
+
+        self.view_manage = Judge_Tab_View(self.main_window)
+        self.view_manage.Set_judge_tab_style()
+
+class Judge_Tab_View:
+    '''管理评教Tab的样式'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+
+    def Set_judge_tab_style(self):
+        self.main_window.Judge_Tab.setStyleSheet('''#Judge_Tab{
+                                                        border: 0px;
+                                                        border-radius: 40px;
+                                                        border-top-left-radius: 0px;
+                                                        border-top-right-radius: 0px;
+
+                                                        background: rgba(0,0,0,0.1);
+                                                    }''')
+        self.main_window.Judge_Tab_Layout.setContentsMargins(10,10,10,10)
+        self.main_window.Judge_Tab_Layout.setSpacing(10)
+
+
+
+class Score_Tab:
+    '''管理成绩Tab的逻辑'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+        self.data_struct_module = self.main_window.data_struct_module
+
+        self.view_manage = Score_Tab_View(self.main_window)
+        self.view_manage.Set_score_tab_style()
+
+class Score_Tab_View:
+    '''管理成绩Tab的样式'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+
+    def Set_score_tab_style(self):
+        self.main_window.Score_Tab.setStyleSheet('''#Score_Tab{
+                                                        border: 0px;
+                                                        border-radius: 40px;
+                                                        border-top-left-radius: 0px;
+                                                        border-top-right-radius: 0px;
+
+                                                        background: rgba(0,0,0,0.1);
+                                                    }''')
+        self.main_window.Score_Tab_Layout.setContentsMargins(10,10,10,10)
+        self.main_window.Score_Tab_Layout.setSpacing(10)
+
+
+
+class Setting_Tab:
+    '''管理设置Tab的逻辑'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+        self.data_struct_module = self.main_window.data_struct_module
+
+        self.view_manage = Setting_Tab_View(self.main_window)
+        self.view_manage.Set_setting_tab_style()
+
+class Setting_Tab_View:
+    '''管理设置Tab的样式'''
+    def __init__(self,main_window):
+        self.main_window = main_window
+
+    def Set_setting_tab_style(self):
+        self.main_window.Setting_Tab.setStyleSheet('''#Setting_Tab{
+                                                        border: 0px;
+                                                        border-radius: 40px;
+                                                        border-top-left-radius: 0px;
+                                                        border-top-right-radius: 0px;
+
+                                                        background: rgba(0,0,0,0.1);
+                                                    }''')
+        self.main_window.Setting_Tab_Layout.setContentsMargins(10,10,10,10)
+        self.main_window.Setting_Tab_Layout.setSpacing(10)
+
+
+
+if __name__ == '__main__':
+    app = QApplication(SYS_argv)
+    main_window = Main_Window()
+    main_window.show()
+    SYS_exit(app.exec_())

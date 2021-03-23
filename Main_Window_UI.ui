@@ -72,7 +72,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="All_res.qrc">
+          <iconset resource="All_Res.qrc">
            <normaloff>:/all_images/res/Exit.png</normaloff>:/all_images/res/Exit.png</iconset>
          </property>
         </widget>
@@ -106,6 +106,9 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="currentIndex">
+             <number>0</number>
             </property>
             <item>
              <property name="text">

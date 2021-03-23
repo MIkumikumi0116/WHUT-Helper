@@ -144,6 +144,7 @@ class Ui_Main_Window_UI(object):
         Main_Window_UI.setCentralWidget(self.Central_Widget)
 
         self.retranslateUi(Main_Window_UI)
+        self.Week_Select_ComboBox.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(Main_Window_UI)
 
     def retranslateUi(self, Main_Window_UI):

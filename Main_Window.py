@@ -9,6 +9,7 @@ from time import sleep as TIME_sleep
 from json import loads as JSON_loads
 from json import dumps as JSON_dumps
 from datetime import date as DATE_date
+from datetime import datetime
 from threading import Thread as THREAD_Thread
 from datetime import timedelta as DATE_timedelta
 from selenium import webdriver as Selenium_webdriver
@@ -488,9 +489,9 @@ class Schedule_Tab:
         self.view_manage = Schedule_Tab_View(self.main_window)
         self.view_manage.Set_schedule_tab_style()
 
-        now = datetime.now()
-        self.current_week = 1   #TODO:自动获取当前时间设置current_week
         self.first_week_date = COPY_copy(FIRST_WEEK_DATE)
+        self.current_week = (datetime.now().date() - self.first_week_date).days // 7 + 1
+        self.main_window.Week_Select_ComboBox.setCurrentIndex(self.current_week - 1)
 
         self.main_window.Week_Select_ComboBox.currentIndexChanged.connect(self.On_week_select_comboBox_changed)
 
@@ -684,7 +685,7 @@ class Schedule_Tab_View:
         self.main_window.Schedule_Table_Widget.verticalHeader().setVisible(False)
         self.main_window.Schedule_Table_Widget.verticalHeader().setDefaultSectionSize(193)
         self.main_window.Schedule_Table_Widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch) #自动伸展表格各列
-        self.main_window.Schedule_Table_Widget.setRowHeight(0,74)   #调整第一行行高 #TODO:不要把高度写死成px
+        self.main_window.Schedule_Table_Widget.setRowHeight(0,76)   #调整第一行行高 #TODO:不要把高度写死成px
         self.main_window.Schedule_Table_Widget.setShowGrid(False)
 
     def Set_weekday_label_style(self,weekday_label,x):#TODO:自动跳转到今天并设置更亮的样式

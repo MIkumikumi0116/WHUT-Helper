@@ -321,7 +321,298 @@
       <widget class="QWidget" name="Setting_Tab">
        <layout class="QHBoxLayout" name="Setting_Tab_Layout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4"/>
+         <widget class="QWidget" name="Setting_Left_Widget" native="true">
+          <layout class="QVBoxLayout" name="Setting_Left_Widget_Layout">
+           <item>
+            <layout class="QHBoxLayout" name="Set_Opacity_Layout">
+             <item>
+              <widget class="QLabel" name="Set_Opacity_Label">
+               <property name="text">
+                <string>窗口透明度</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSlider" name="Set_Opacity_Slider">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>150</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximum">
+                <number>100</number>
+               </property>
+               <property name="value">
+                <number>85</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="Set_Opacity_LineEdit">
+               <property name="text">
+                <string>0.85</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_4">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="Save_Account_Layout">
+             <item>
+              <widget class="QLabel" name="Save_Account_Label">
+               <property name="text">
+                <string>记住密码</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_6">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>17</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="Save_Account_CheckBox">
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_5">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <spacer name="verticalSpacer">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="Setting_Right_Widget" native="true">
+          <layout class="QVBoxLayout" name="Setting_Right_Widget_Layout">
+           <item>
+            <layout class="QHBoxLayout" name="Illustrator_ID_Layout">
+             <item>
+              <widget class="QLabel" name="Illustrator_ID_Label">
+               <property name="text">
+                <string>背景来自画师，PIXIV id</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="Background_Setting_Layout">
+             <item>
+              <layout class="QVBoxLayout" name="Main_Bg_Setting_Layout">
+               <item>
+                <widget class="QLabel" name="Main_Bg_ID_Label">
+                 <property name="text">
+                  <string>id</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="Main_Bg_Img_Label">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>150</width>
+                   <height>150</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="pixmap">
+                  <pixmap resource="All_Res.qrc">:/all_images/res/Main_Window_Background.png</pixmap>
+                 </property>
+                 <property name="scaledContents">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="Main_Bg_Custom_Button">
+                 <property name="text">
+                  <string>自定背景</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="Main_Bg_Reset_Button">
+                 <property name="text">
+                  <string>恢复默认</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="Login_Bg_Setting_Layout">
+               <item>
+                <widget class="QLabel" name="Login_Bg_ID_Label">
+                 <property name="text">
+                  <string>id</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="Login_Bg_Img_Label">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>150</width>
+                   <height>150</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="pixmap">
+                  <pixmap resource="All_Res.qrc">:/all_images/res/Login_Window_Background.png</pixmap>
+                 </property>
+                 <property name="scaledContents">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="Login_Bg_Custom_Button">
+                 <property name="text">
+                  <string>自定背景</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="Login_Bg_Reset_Button">
+                 <property name="text">
+                  <string>恢复默认</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="Message_Bg_Setting_Layout">
+               <item>
+                <widget class="QLabel" name="Message_Bg_ID_Label">
+                 <property name="text">
+                  <string>id</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="Message_Bg_Img_Label">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>150</width>
+                   <height>150</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="pixmap">
+                  <pixmap resource="All_Res.qrc">:/all_images/res/Message_Window_Background.png</pixmap>
+                 </property>
+                 <property name="scaledContents">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="Message_Bg_Custom_Button">
+                 <property name="text">
+                  <string>自定背景</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="Message_Bg_Reset_Button">
+                 <property name="text">
+                  <string>恢复默认</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
         </item>
        </layout>
       </widget>

@@ -21,11 +21,14 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
         self.Close_Button.released.connect(self.On_close_button_clicked)
         self.Confirm_Button.released.connect(self.On_confirm_button_clicked)
 
-        self.Massage_Label.setText(massage)
+        self.mousePressEvent = self.On_Mouse_press_event
+        self.mouseMoveEvent = self.On_Mouse_move_event
+        self.mouseReleaseEvent = self.On_Mouse_release_event
+        self.main_window.closeEvent = self.On_close_event
 
-        self.mousePressEvent = self.Mouse_press_event
-        self.mouseMoveEvent = self.Mouse_move_event
-        self.mouseReleaseEvent = self.Mouse_release_event
+        self.parent_window.message_window_close_single.connect(self.parent_window.On_message_window_close_single)
+
+        self.Massage_Label.setText(massage)
 
     def Set_style(self):
         self.setWindowFlag(Qt.FramelessWindowHint)      #隐藏边框
@@ -92,30 +95,32 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
                                             }''')
 
     def On_close_button_clicked(self):
-        self.parent_window.show()
         self.close()
 
     def On_confirm_button_clicked(self):
-        self.parent_window.show()
         self.close()
 
-    def Mouse_press_event(self,event):
+    def On_Mouse_press_event(self,event):
         '''用来实现窗口拖动'''
         if event.pos().y() <= 30:
             self.drag_first_point = event.pos()
             self.setCursor(Qt.ClosedHandCursor)
             self.darging = True
 
-    def Mouse_move_event(self,event):
+    def On_Mouse_move_event(self,event):
         '''用来实现窗口拖动'''
         if self.darging:
             self.drag_second_point = event.pos()
             self.move(self.pos() + (self.drag_second_point - self.drag_first_point))
 
-    def Mouse_release_event(self, event):
+    def On_Mouse_release_event(self, event):
         '''用来实现窗口拖动'''
         self.setCursor(Qt.ArrowCursor)
         self.darging = False
+
+    def On_close_event(self, event):
+        self.parent_window.message_window_close_single.emit()
+
 
 if __name__ == '__main__':
     app = QApplication(SYS_argv)

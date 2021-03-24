@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="all_images">
+    <file>res/CheckBox_Checked.png</file>
+    <file>res/CheckBox_Unchecked.png</file>
     <file>res/Down_Arrow.png</file>
     <file>res/Exit.png</file>
     <file>res/Login_Window_Background.png</file>

@@ -1,4 +1,5 @@
 from os import path as OS_path
+from re import match as RE_match
 from os import mkdir as OS_mkdir
 from sys import argv as SYS_argv
 from sys import exit as SYS_exit
@@ -9,15 +10,15 @@ from time import sleep as TIME_sleep
 from json import loads as JSON_loads
 from json import dumps as JSON_dumps
 from datetime import date as DATE_date
-from datetime import datetime
 from threading import Thread as THREAD_Thread
+from datetime import datetime as DATE_Datetime
 from datetime import timedelta as DATE_timedelta
 from selenium import webdriver as Selenium_webdriver
 from selenium.webdriver.chrome.options import Options as Chrome_options
 
 
 
-from PyQt5.QtCore import Qt,pyqtSignal,QThread
+from PyQt5.QtCore import Qt,pyqtSignal
 from PyQt5.QtGui import QBitmap, QPainter
 from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QHeaderView, QListView
 
@@ -28,12 +29,14 @@ from Message_Window import Message_Window
 FIRST_WEEK_DATE = DATE_date(2021,3,1)
 
 
-
+#TODO:通知队列和读取文件出错通知
 class Main_Window(QMainWindow, Ui_Main_Window_UI):
     '''管理窗口控件、所有模块公用的逻辑、主业务逻辑'''
     show_info_single = pyqtSignal(str,bool)   #在Info_Label显示提示信息3秒(bool = False)或持续显示(bool = True)
+    show_message_single = pyqtSignal(str)
+    message_window_close_single = pyqtSignal()
 
-    def __init__(self): #TODO:登录逻辑要改
+    def __init__(self):
         QMainWindow.__init__(self)
         #设置窗口样式、设置激励与响应等构造方法中不包含业务逻辑的部分
         self.Main_window_init()
@@ -45,6 +48,17 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
         self.darging = False
         self.drag_first_point = None
         self.drag_second_point = None
+
+        self.main_window.Set_Opacity_Slider.blockSignals(True)
+        self.main_window.Set_Opacity_Slider.setValue(self.data_struct_module.window_opacity * 100)
+        self.main_window.Set_Opacity_Slider.blockSignals(False)
+        self.main_window.Set_Opacity_LineEdit.setText(str(self.data_struct_module.window_opacity))
+        self.Set_opacity(self.data_struct_module.window_opacity)
+
+        if self.data_struct_module.save_account:
+            self.main_window.Save_Account_CheckBox.setCheckState(2)
+        else:
+            self.main_window.Save_Account_CheckBox.setCheckState(0)
 
         self.schedule_tab.Set_schedule()
         self.data_struct_module.Check_data_same_to_web()
@@ -73,11 +87,24 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
         self.main_window.Setting_Button.released.connect(self.On_setting_button_clicked)
         self.main_window.Close_Button.released.connect(self.On_close_button_clicked)
 
+        self.main_window.mousePressEvent = self.On_Mouse_press_event
+        self.main_window.mouseMoveEvent = self.On_Mouse_move_event
+        self.main_window.mouseReleaseEvent = self.On_Mouse_release_event
+        self.main_window.closeEvent = self.On_close_event
+
         self.show_info_single.connect(self.On_show_info_single)
 
-        self.main_window.mousePressEvent = self.Mouse_press_event
-        self.main_window.mouseMoveEvent = self.Mouse_move_event
-        self.main_window.mouseReleaseEvent = self.Mouse_release_event
+    def Set_opacity(self,window_opacity):
+        self.data_struct_module.window_opacity = window_opacity
+        self.main_window.setWindowOpacity(self.data_struct_module.window_opacity)
+
+        if self.data_struct_module.login_window != None:
+            self.data_struct_module.login_window.setWindowOpacity(self.data_struct_module.window_opacity)
+            if self.data_struct_module.login_window.message_window != None:
+                self.data_struct_module.login_window.message_window.setWindowOpacity(self.data_struct_module.window_opacity)
+
+        if self.message_window != None:
+            self.message_window.setWindowOpacity(self.data_struct_module.window_opacity)
 
     def On_show_info_single(self, info, whether_last):
         '''在Info_Label显示3秒信息'''
@@ -92,6 +119,14 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
             self.info_thread = THREAD_Thread(target = Set_info,args = (self.main_window.Info_label,info,))
             self.info_thread.start()
 
+    def On_show_message_single(self,message):
+        '''在消息窗口显示一条消息'''
+        self.message_window = Message_Window(message,self)
+        self.message_window.show()
+
+    def On_message_window_close_single(self):
+        self.message_window = None
+
     def On_schedule_button_clicked(self):
         self.main_window.Main_Tab_Widget.setCurrentIndex(0)
         self.view_manage.Set_tab_button_style_on_click(self.main_window.Schedule_Button)
@@ -105,65 +140,41 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
         self.view_manage.Set_tab_button_style_on_click(self.main_window.Score_Button)
 
     def On_setting_button_clicked(self):
-        self.main_window.Main_Tab_Widget.setCurrentIndex(4)
+        self.main_window.Main_Tab_Widget.setCurrentIndex(3)
         self.view_manage.Set_tab_button_style_on_click(self.main_window.Setting_Button)
 
     def On_close_button_clicked(self):
         self.close()
 
-    def Mouse_press_event(self,event):
+    def On_Mouse_press_event(self,event):
         '''用来实现窗口拖动'''
         if event.pos().y() <= self.main_window.Main_Tab_Widget.geometry().y():
             self.drag_first_point = event.pos()
             self.main_window.setCursor(Qt.ClosedHandCursor)
             self.darging = True
 
-    def Mouse_move_event(self,event):
+    def On_Mouse_move_event(self,event):
         '''用来实现窗口拖动'''
         if self.darging:
             self.drag_second_point = event.pos()
             self.main_window.move(self.main_window.pos() + (self.drag_second_point - self.drag_first_point))
 
-    def Mouse_release_event(self, event):
+    def On_Mouse_release_event(self, event):
         '''用来实现窗口拖动'''
         self.main_window.setCursor(Qt.ArrowCursor)
         self.darging = False
+
+    def On_close_event(self, event):
+        self.data_struct_module.Save_data_struct_to_disk()
 
 class Main_Window_View:
     '''管理主窗口样式，对控件样式，按深度优先便利控件树的顺序设置各控件样式，下同'''
     def __init__(self,main_window):
         self.main_window = main_window
 
-    def Set_tab_button_style_on_click(self,clicked_button):
-        '''Tab栏按钮按下时，设置被按下按钮和其他按钮的样式'''
-        stander_style = '''{
-                            background: rgba(0,0,0,0.06);
-                        }'''
-        stander_style_hover = ''':hover{
-                                    background: rgba(0,0,0,0.8);
-                                }'''
-        stander_style_pressed = ''':pressed{
-                                        background: rgba(0,0,0,0.1);
-                                    }'''
-
-        button_name_list = [(self.main_window.Schedule_Button,'Schedule_Button'),
-                            (self.main_window.Judge_Button,'Judge_Button'),
-                            (self.main_window.Score_Button,'Score_Button'),
-                            (self.main_window.Setting_Button,'Setting_Button')]
-
-        for button,name in button_name_list:
-            button.setStyleSheet('''#{name}{stander_style}
-                                    #{name}{stander_style_hover}
-                                    #{name}{stander_style_pressed}''')
-
-        clicked_button.setStyleSheet(f'#{[i for i in button_name_list if i[0] == clicked_button][0][1]}' + '''{
-                                            background: rgba(0,0,0,0.1);
-                                        }''')
-
     def Set_main_window_style(self):
         self.main_window.setWindowFlag(Qt.FramelessWindowHint)      #隐藏边框
         self.main_window.setAttribute(Qt.WA_TranslucentBackground)  #窗口背景透明，做圆角窗口用的
-        self.main_window.setWindowOpacity(0.85)                     #窗口透明度     #TODO:透明度可设置
 
         self.main_window.Central_Widget.setStyleSheet('''#Central_Widget{
                                                             border-radius: 50px;
@@ -207,7 +218,7 @@ class Main_Window_View:
                                                         color: rgb(255,255,255);
 
                                                         font-family: 'Microsoft Yahei light';
-                                                        font-size: 22px;
+                                                        font-size: 20px;
                                                     }''')
 
         self.main_window.Close_Button.setStyleSheet('''#Close_Button{
@@ -226,10 +237,36 @@ class Main_Window_View:
                                                             border: 0px;
                                                         }''')#TODO:这样子把间距写死成多少像素很不优雅，高分屏用户会哭的
 
+    def Set_tab_button_style_on_click(self,clicked_button):
+        '''Tab栏按钮按下时，设置被按下按钮和其他按钮的样式'''
+        stander_style = '''{
+                            background: rgba(0,0,0,0.06);
+                        }'''
+        stander_style_hover = ''':hover{
+                                    background: rgba(0,0,0,0.8);
+                                }'''
+        stander_style_pressed = ''':pressed{
+                                        background: rgba(0,0,0,0.1);
+                                    }'''
+
+        button_name_list = [(self.main_window.Schedule_Button,'Schedule_Button'),
+                            (self.main_window.Judge_Button,'Judge_Button'),
+                            (self.main_window.Score_Button,'Score_Button'),
+                            (self.main_window.Setting_Button,'Setting_Button')]
+
+        for button,name in button_name_list:
+            button.setStyleSheet('''#{name}{stander_style}
+                                    #{name}{stander_style_hover}
+                                    #{name}{stander_style_pressed}''')
+
+        clicked_button.setStyleSheet(f'#{[i for i in button_name_list if i[0] == clicked_button][0][1]}' + '''{
+                                            background: rgba(0,0,0,0.1);
+                                        }''')
+
 
 
 class Data_Struct_Module(QMainWindow):
-    '''管理所有会写入硬盘的数据，包括所有从教务处网页获取的数据，继承QMainWindow只是为了使用pyqtSignal
+    '''管理所有会写入硬盘的数据和登录教务处需要的数据和登录窗口，继承QMainWindow只是为了使用pyqtSignal
        很烦的一点就是因为登录耗时很长，所以要单独开个线程免得主窗口卡着不响应用户，
        而用本地缓存的学号密码登录失败就要开Login_Window重新登录，
        但是天杀的qt在多线程里开窗口会出问题，就不能在新开的线程里开Login_Window，
@@ -240,6 +277,7 @@ class Data_Struct_Module(QMainWindow):
     try_login_fail_singal = pyqtSignal()                #由自己发出，以本地缓存的学号密码登录失败时发出
     login_successful_signal = pyqtSignal(str,str,list)  #由Login_Window发出，告知main_window用户输入了正确的用户名和密码，并返回登录成功的浏览器指针，放在list里
     login_fail_signal = pyqtSignal()                    #没有登录成功就关闭了Login_Window
+
     class Course:
         def __init__(self,name,teacher,classroom,day,big_class,start_week,end_week,start_class,end_class,type = '非自定义'):
             self.name = name
@@ -267,19 +305,21 @@ class Data_Struct_Module(QMainWindow):
         QMainWindow.__init__(self)
         self.main_window = main_window
 
+        self.no_account_in_cache_single.connect(self.On_no_account_in_cache_single)
+        self.try_login_fail_singal.connect(self.On_try_login_fail_singal)
+        self.login_successful_signal.connect(self.On_login_successful_signal)
+        self.login_fail_signal.connect(self.On_login_fail_signal)
+
         self.login_window = None
         self.background_thread = None   #登录教务处或者显示提示信息几秒后清楚信息用的
 
         self.bro = None                 #登录用的浏览器
         self.name = ''
         self.password =''
+        self.save_account = False
+        self.window_opacity = 0.85
         self.course_list = []           #主课程列表
         self.course_list_temp = []      #用于比对主课程列表与教务处是否一致
-
-        self.no_account_in_cache_single.connect(self.On_no_account_in_cache_single)
-        self.try_login_fail_singal.connect(self.On_try_login_fail_singal)
-        self.login_successful_signal.connect(self.On_login_successful_signal)
-        self.login_fail_signal.connect(self.On_login_fail_signal)
 
         self.Get_data_struct_from_disk()
 
@@ -306,9 +346,11 @@ class Data_Struct_Module(QMainWindow):
         self.Save_data_struct_to_disk()
 
         self.login_window.close()
+        self.login_window = None
         self.main_window.show_info_single.emit('课表已更新至最新',False)
 
     def On_login_fail_signal(self):
+        self.login_window = None
         self.main_window.show_info_single.emit('登录失败，当前的课表可能不是最新的',False)
 
     def Try_login(self):
@@ -387,18 +429,27 @@ class Data_Struct_Module(QMainWindow):
     def Get_data_struct_from_disk(self):
         '''从磁盘获取课程列表，成功返回True，失败返回错误类型'''
         if OS_path.isdir('local_cache') and OS_path.isfile('local_cache\local_cache.json'):
-            with open('local_cache\local_cache.json', 'r') as file:
+            with open('local_cache\local_cache.json', 'r',encoding='utf-8') as file:
                 data_struct_json = file.read()
             if len(data_struct_json) == 0:
                 return 'File empty'
 
             try:
                 data_struct_dict = JSON_loads(data_struct_json)
-                #验证这些字段是否存在
+                #验证这些字段是否存在和字段有没有问题
                 data_struct_dict['name']
-                data_struct_dict['password']
-                data_struct_dict['course_list']
+                if not data_struct_dict['name'] == '' and not RE_match(r'^\d{13}$',data_struct_dict['name']):
+                    raise BaseException
 
+                data_struct_dict['password']
+                if not data_struct_dict['password'] == '' and not RE_match(r'^.{4}.*$',data_struct_dict['password']):
+                    raise BaseException
+
+                data_struct_dict['save_account']
+                if not (data_struct_dict['save_account'] == True or data_struct_dict['save_account'] == False):
+                    raise BaseException
+
+                data_struct_dict['course_list']
                 course_list = []
                 for course_json in data_struct_dict['course_list']:
                     course_dict = JSON_loads(course_json)
@@ -407,13 +458,17 @@ class Data_Struct_Module(QMainWindow):
 
             except  BaseException as e:
                 #文件有问题，清空文件
-                with open('local_cache\course_cache.txt', 'w') as file:
+                with open('local_cache\local_cache.json', 'w') as file:
                     file.write('')
                 return 'Wrong in file'
+
             else:
                 self.name = data_struct_dict['name']
                 self.password = data_struct_dict['password']
+                self.window_opacity = data_struct_dict['window_opacity']
+                self.save_account = data_struct_dict['save_account']
                 self.course_list = course_list
+
                 if len(self.course_list) > 0:
                     return True
                 else:
@@ -428,14 +483,18 @@ class Data_Struct_Module(QMainWindow):
         if not OS_path.isdir('local_cache'):
             OS_mkdir('local_cache')
 
-        with open('local_cache\local_cache.json', 'w') as file:
+        with open('local_cache\local_cache.json', 'w',encoding='utf-8') as file:
             course_list_json = []
             for course in self.course_list:
-                course_info = JSON_dumps(course.To_dict())
+                course_info = JSON_dumps(course.To_dict(),ensure_ascii=False)
                 course_list_json.append(course_info)
 
-            data_struct_dict = {'name':self.name,'password':self.password,'course_list':course_list_json}
-            data_struct_json = JSON_dumps(data_struct_dict)
+            data_struct_dict = {'name':self.name if self.save_account else '',
+                                'password':self.password if self.save_account else '',
+                                'window_opacity':self.window_opacity,
+                                'save_account':self.save_account,
+                                'course_list':course_list_json}
+            data_struct_json = JSON_dumps(data_struct_dict,ensure_ascii=False)
 
             file.write(data_struct_json)
 
@@ -490,7 +549,7 @@ class Schedule_Tab:
         self.view_manage.Set_schedule_tab_style()
 
         self.first_week_date = COPY_copy(FIRST_WEEK_DATE)
-        self.current_week = (datetime.now().date() - self.first_week_date).days // 7 + 1
+        self.current_week = (DATE_Datetime.now().date() - self.first_week_date).days // 7 + 1
         self.main_window.Week_Select_ComboBox.setCurrentIndex(self.current_week - 1)
 
         self.main_window.Week_Select_ComboBox.currentIndexChanged.connect(self.On_week_select_comboBox_changed)
@@ -688,7 +747,7 @@ class Schedule_Tab_View:
         self.main_window.Schedule_Table_Widget.setRowHeight(0,76)   #调整第一行行高 #TODO:不要把高度写死成px
         self.main_window.Schedule_Table_Widget.setShowGrid(False)
 
-    def Set_weekday_label_style(self,weekday_label,x):#TODO:自动跳转到今天并设置更亮的样式
+    def Set_weekday_label_style(self,weekday_label,x):
         weekday_label.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)  #文字居中
         weekday_label.setObjectName(f'weekday_label_{x}')
         weekday_label.setStyleSheet( f'#weekday_label_{x}' + '''{
@@ -809,12 +868,43 @@ class Setting_Tab:
         self.view_manage = Setting_Tab_View(self.main_window)
         self.view_manage.Set_setting_tab_style()
 
+        self.main_window.Set_Opacity_LineEdit.textChanged.connect(self.On_set_opacity_lineedit_textchanged)
+        self.main_window.Set_Opacity_Slider.valueChanged.connect(self.On_set_opacity_slider_value_changed)
+        self.main_window.Save_Account_CheckBox.stateChanged.connect(self.On_save_account_checkBox_changed)
+
+    def On_save_account_checkBox_changed(self,event):
+        #取消
+        if event == 0:
+            self.data_struct_module.save_account = False
+        #选中
+        else:
+            self.data_struct_module.save_account = True
+
+    def On_set_opacity_lineedit_textchanged(self):
+        text = self.main_window.Set_Opacity_LineEdit.text()
+
+        if RE_match(r'^[0|1]\.\d{0,2}$',text):
+            if eval(text) > 1:
+                text = '1.00'
+            self.main_window.Set_Opacity_Slider.blockSignals(True)
+            self.main_window.Set_Opacity_Slider.setValue(int(eval(text) * 100))
+            self.main_window.Set_Opacity_Slider.blockSignals(False)
+            self.main_window.Set_Opacity_LineEdit.setText(text)     #应对text>1的情况
+            self.main_window.Set_opacity(eval(text))
+        else:
+            self.main_window.Set_Opacity_LineEdit.setText(str(self.data_struct_module.window_opacity))
+
+    def On_set_opacity_slider_value_changed(self):
+        #set了text就会引起On_set_opacity_lineedit_textchanged响应，就不用在slider里Set_opacity了
+        self.main_window.Set_Opacity_LineEdit.setText(str(self.main_window.Set_Opacity_Slider.value() / 100))
+
 class Setting_Tab_View:
     '''管理设置Tab的样式'''
     def __init__(self,main_window):
         self.main_window = main_window
 
     def Set_setting_tab_style(self):
+        #设置tab里所有同类型控件应该有统一的样式表，所以都放在Setting_Tab的样式表里，然后子控件继承
         self.main_window.Setting_Tab.setStyleSheet('''#Setting_Tab{
                                                         border: 0px;
                                                         border-radius: 40px;
@@ -822,9 +912,111 @@ class Setting_Tab_View:
                                                         border-top-right-radius: 0px;
 
                                                         background: rgba(0,0,0,0.1);
+                                                    }
+
+                                                    #Setting_Tab QLineEdit{
+                                                        padding-left: 10px;
+                                                        padding-right: 10px;
+                                                        border-radius: 15px;
+
+                                                        width: 40px;
+                                                        height: 30px;
+
+                                                        color: rgb(255,255,255);
+                                                        background: rgba(0,0,0,0.3);
+
+                                                        font-family: 'Microsoft Yahei light';
+                                                        font-size: 18px;
+                                                    }
+
+                                                    #Setting_Tab QLabel{
+                                                        color: rgb(255,255,255);
+
+                                                        font-family: 'Microsoft Yahei light';
+                                                        font-size: 18px;
+                                                    }
+
+                                                    #Setting_Tab QPushButton{
+                                                        border: 0px;
+                                                        border-radius: 20px;
+
+                                                        width: 150px;
+                                                        height: 40px;
+
+                                                        color: rgb(255,255,255);
+                                                        background: rgba(0,0,0,0.3);
+
+                                                        font-family: 'Microsoft Yahei light';
+                                                        font-size: 18px;
+                                                    }
+                                                    #Setting_Tab QPushButton:hover{
+                                                        background: rgba(0,0,0,0.4);
+                                                    }
+                                                    #Setting_Tab QPushButton:pressed{
+                                                        background: rgba(0,0,0,0.5);
+                                                    }
+
+                                                    #Setting_Tab QSlider::handle:horizontal{
+                                                        border: 3px;
+                                                        border-style: solid;
+                                                        border-radius: 12px;
+                                                        border-color: rgb(255,255,255);
+                                                        margin: -11px 0px -11px 0px;
+
+                                                        width: 18px;
+                                                        height: 20px;
+
+                                                        background: rgb(56, 131, 209);
+                                                    }
+                                                    #Setting_Tab QSlider::groove:horizontal{
+                                                        height: 2px;
+                                                        background : rgb(219,219,219);
+                                                    }
+                                                    #Setting_Tab QSlider::add-page:horizontal{
+                                                        background-color: rgb(219,219,219);
+                                                    }
+                                                    #Setting_Tab QSlider::sub-page:horizontal{
+                                                        background-color: rgb(26, 101, 179);
+                                                    }
+
+                                                    #Setting_Tab QCheckBox::indicator {
+                                                        width: 20px;
+                                                        height: 20px;
+                                                    }
+                                                    #Setting_Tab QCheckBox::indicator:checked {
+                                                        image: url(:/all_images/res/CheckBox_Checked.png);
+                                                    }
+                                                    #Setting_Tab QCheckBox::indicator:unchecked {
+                                                        image: url(:/all_images/res/CheckBox_Unchecked.png);
                                                     }''')
         self.main_window.Setting_Tab_Layout.setContentsMargins(10,10,10,10)
         self.main_window.Setting_Tab_Layout.setSpacing(10)
+
+        self.main_window.Setting_Left_Widget.setStyleSheet('''#Setting_Left_Widget{
+                                                                border: 0px;
+                                                                border-radius: 30px;
+
+                                                                background: rgba(0,0,0,0.1);
+                                                            }''')
+        self.main_window.Setting_Left_Widget_Layout.setContentsMargins(10,10,10,10)
+        self.main_window.Setting_Left_Widget_Layout.setSpacing(10)
+
+        self.main_window.Set_Opacity_Layout.setContentsMargins(0,0,0,0)
+        self.main_window.Set_Opacity_Layout.setSpacing(20)
+        self.main_window.Set_Opacity_Layout.setStretch(3,1)
+
+        self.main_window.Save_Account_Layout.setContentsMargins(0,0,0,0)
+        self.main_window.Save_Account_Layout.setSpacing(20)
+        self.main_window.Save_Account_Layout.setStretch(2,1)
+
+        self.main_window.Setting_Right_Widget.setStyleSheet('''#Setting_Right_Widget{
+                                                                border: 0px;
+                                                                border-radius: 30px;
+
+                                                                background: rgba(0,0,0,0.1);
+                                                            }''')
+        self.main_window.Setting_Right_Widget_Layout.setContentsMargins(10,10,10,10)
+        self.main_window.Setting_Right_Widget_Layout.setSpacing(10)
 
 
 

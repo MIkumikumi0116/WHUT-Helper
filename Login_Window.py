@@ -18,11 +18,22 @@ from Message_Window import Message_Window
 class Login_Window(QMainWindow, Ui_Login_Window_UI):
     '''登录窗口，检验用户输入的学号和密码是否正确并把登录成功的学号密码和bro对象返回回去，只与data_struct_model通信'''
     show_message_single = pyqtSignal(str)
+    message_window_close_single = pyqtSignal()
 
     def __init__(self,data_struct_model):
         QMainWindow.__init__(self)
         self.setupUi(self)
         self.Set_style()
+
+        self.Login_Button.released.connect(self.On_login_button_clicked)
+        self.Close_Button.released.connect(self.On_close_button_clicked)
+
+        self.mousePressEvent = self.On_Mouse_press_event
+        self.mouseMoveEvent = self.On_Mouse_move_event
+        self.mouseReleaseEvent = self.On_Mouse_release_event
+        self.closeEvent = self.On_close_event
+
+        self.show_message_single.connect(self.On_show_message_single)
 
         self.data_struct_model = data_struct_model
 
@@ -32,15 +43,6 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
         self.darging = False
         self.drag_first_point = None
         self.drag_second_point = None
-
-        self.Login_Button.released.connect(self.On_login_button_clicked)
-        self.Close_Button.released.connect(self.On_close_button_clicked)
-
-        self.show_message_single.connect(self.On_show_message_single)
-
-        self.mousePressEvent = self.Mouse_press_event
-        self.mouseMoveEvent = self.Mouse_move_event
-        self.mouseReleaseEvent = self.Mouse_release_event
 
     def Set_style(self):
         self.setWindowFlag(Qt.FramelessWindowHint)      #隐藏边框
@@ -114,7 +116,6 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
         self.Password_Layout.setContentsMargins(0,0,0,0)
         self.Password_Layout.setSpacing(10)
 
-        #self.Login_Button.setFocusPolicy(Qt.NoFocus)
         self.Login_Button.setStyleSheet('''#Login_Button{
                                                 border: 0px;
                                                 border-radius: 20px;
@@ -128,7 +129,7 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
                                                 font-family: 'Microsoft Yahei light';
                                                 font-size: 20px;
 
-                                                outline: none
+                                                outline: 0px;
                                             }
                                             #Login_Button:hover{
                                                 background: rgba(0,0,0,0.3);
@@ -138,7 +139,7 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
                                             }''')
 
     def On_show_message_single(self,message):
-        '''打印提示信息并做一些清理工作'''
+        '''Login_Window的消息窗口只可能由出错产生，显示一条消息并做一些清理工作'''
         self.message_window = Message_Window(message,self)
         self.message_window.show()
 
@@ -164,6 +165,9 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
                                             #Login_Button:pressed{
                                                 background: rgba(0,0,0,0.4);
                                             }''')
+
+    def On_message_window_close_single(self):
+        self.message_window = None
 
     def On_login_button_clicked(self):
         '''检验学号密码长度对不对，再尝试登录教务处'''
@@ -283,28 +287,29 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
                                             }''')
 
     def On_close_button_clicked(self):
-        self.data_struct_model.login_fail_signal.emit()
-        self.message_window = None  #如果有没有关闭的消息窗口，就会被垃圾回收强行清理掉
         self.close()
 
-    def Mouse_press_event(self,event):
+    def On_Mouse_press_event(self,event):
         '''用来实现窗口拖动'''
         if event.pos().y() <= 30:
             self.drag_first_point = event.pos()
             self.setCursor(Qt.ClosedHandCursor)
             self.darging = True
 
-    def Mouse_move_event(self,event):
+    def On_Mouse_move_event(self,event):
         '''用来实现窗口拖动'''
         if self.darging:
             self.drag_second_point = event.pos()
             self.move(self.pos() + (self.drag_second_point - self.drag_first_point))
 
-    def Mouse_release_event(self, event):
+    def On_Mouse_release_event(self, event):
         '''用来实现窗口拖动'''
         self.setCursor(Qt.ArrowCursor)
         self.darging = False
 
+    def On_close_event(self, event):
+        self.data_struct_model.login_fail_signal.emit()
+        self.message_window = None  #如果有没有关闭的消息窗口，就会被垃圾回收强行清理掉
 
 
 if __name__ == '__main__':

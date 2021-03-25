@@ -319,7 +319,7 @@ class Ui_Main_Window_UI(object):
         self.Set_Opacity_Label.setText(_translate("Main_Window_UI", "窗口透明度"))
         self.Set_Opacity_LineEdit.setText(_translate("Main_Window_UI", "0.85"))
         self.Save_Account_Label.setText(_translate("Main_Window_UI", "记住密码"))
-        self.Illustrator_ID_Label.setText(_translate("Main_Window_UI", "点击插画名可前往插画主页"))
+        self.Illustrator_ID_Label.setText(_translate("Main_Window_UI", "点击插画介绍可前往插画Pixiv页面"))
         self.Main_Window_Bg_ID_Label.setText(_translate("Main_Window_UI", "<html><head/><body><p>id</p></body></html>"))
         self.Main_Window_Bg_Custom_Button.setText(_translate("Main_Window_UI", "自定背景"))
         self.Main_Window_Bg_Reset_Button.setText(_translate("Main_Window_UI", "恢复默认"))

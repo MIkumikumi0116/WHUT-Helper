@@ -31,6 +31,7 @@ from Message_Window import Message_Window
 FIRST_WEEK_DATE = DATE_date(2021,3,1)
 
 
+
 #TODO:通知队列和读取文件出错通知，所有try都要有
 class Main_Window(QMainWindow, Ui_Main_Window_UI):
     '''管理窗口控件、所有模块公用的逻辑、主业务逻辑'''
@@ -1215,17 +1216,17 @@ class Setting_Tab_View:
 
         self.main_window.Main_Window_Bg_ID_Label.setText('''<style> a {text-decoration: none; color: white} </style>
                                                             <a href = \"https://www.pixiv.net/artworks/49240323\">
-                                                            <div><p>miku千里走单骑</p><p>来自千夜QYS3</p><p>作品id:</p><p>49240323</p>
+                                                            <div><p>miku千里走单骑</p><p>作者：千夜QYS3</p><p>Pixiv id:</p><p>49240323</p>
                                                             </div></a>''')
         self.main_window.Main_Window_Bg_ID_Label.setOpenExternalLinks(True)
         self.main_window.Login_Window_Bg_ID_Label.setText('''<style> a {text-decoration: none; color: white} </style>
                                                             <a href = \"https://www.pixiv.net/artworks/84026087\">
-                                                            <div><p>韶华</p><p>来自画师ASK</p><p>作品id:</p><p>84026087</p>
+                                                            <div><p>韶华</p><p>作者：画师ASK</p><p>Pixiv id:</p><p>84026087</p>
                                                             </div></a>''')
         self.main_window.Login_Window_Bg_ID_Label.setOpenExternalLinks(True)
         self.main_window.Message_Window_Bg_ID_Label.setText('''<style> a {text-decoration: none; color: white} </style>
                                                                 <a href = \"https://www.pixiv.net/artworks/79257667\">
-                                                                <div><p>ヌードル·ストッパー</p><p>来自画师DangMyo</p><p>作品id:</p><p>79257667</p>
+                                                                <div><p>ヌードル·ストッパー</p><p>作者：画师DangMyo</p><p>Pixiv id:</p><p>79257667</p>
                                                                 </div></a>''')
         self.main_window.Message_Window_Bg_ID_Label.setOpenExternalLinks(True)
 

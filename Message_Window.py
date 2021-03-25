@@ -21,12 +21,29 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
         self.Close_Button.released.connect(self.On_close_button_clicked)
         self.Confirm_Button.released.connect(self.On_confirm_button_clicked)
 
-        self.mousePressEvent = self.On_Mouse_press_event
-        self.mouseMoveEvent = self.On_Mouse_move_event
-        self.mouseReleaseEvent = self.On_Mouse_release_event
-        self.main_window.closeEvent = self.On_close_event
+        self.mousePressEvent = self.On_mouse_press_event
+        self.mouseMoveEvent = self.On_mouse_move_event
+        self.mouseReleaseEvent = self.On_mouse_release_event
+        self.closeEvent = self.On_close_event
 
         self.parent_window.message_window_close_single.connect(self.parent_window.On_message_window_close_single)
+
+        self.darging = False
+        self.drag_first_point = None
+        self.drag_second_point = None
+
+        if self.parent_window.data_struct_module.message_window_bg_custom:
+            self.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                    border-radius: 50px;
+
+                                                    border-image: url(./local_cache/Custom_Message_Window_Bg.png);
+                                                }''')
+        else:
+            self.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                border-radius: 50px;
+
+                                                border-image: url(:/all_images/res/Message_Window_Background.png);
+                                            }''')
 
         self.Massage_Label.setText(massage)
 
@@ -35,11 +52,6 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
         self.setAttribute(Qt.WA_TranslucentBackground)  #窗口背景透明，做圆角窗口用的
         self.setWindowOpacity(0.85)                     #窗口透明度
 
-        self.Central_Widget.setStyleSheet('''#Central_Widget{
-                                                border-radius: 50px;
-
-                                                border-image: url(:/all_images/res/Message_Window_Background.png);
-                                            }''')
         self.Central_Widget_Layout.setContentsMargins(10,10,10,10)
         self.Central_Widget_Layout.setSpacing(0)
 
@@ -100,30 +112,23 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
     def On_confirm_button_clicked(self):
         self.close()
 
-    def On_Mouse_press_event(self,event):
+    def On_mouse_press_event(self,event):
         '''用来实现窗口拖动'''
         if event.pos().y() <= 30:
             self.drag_first_point = event.pos()
             self.setCursor(Qt.ClosedHandCursor)
             self.darging = True
 
-    def On_Mouse_move_event(self,event):
+    def On_mouse_move_event(self,event):
         '''用来实现窗口拖动'''
         if self.darging:
             self.drag_second_point = event.pos()
             self.move(self.pos() + (self.drag_second_point - self.drag_first_point))
 
-    def On_Mouse_release_event(self, event):
+    def On_mouse_release_event(self, event):
         '''用来实现窗口拖动'''
         self.setCursor(Qt.ArrowCursor)
         self.darging = False
 
     def On_close_event(self, event):
         self.parent_window.message_window_close_single.emit()
-
-
-if __name__ == '__main__':
-    app = QApplication(SYS_argv)
-    message_window = Message_Window('在？不填密码的吗')
-    message_window.show()
-    SYS_exit(app.exec_())

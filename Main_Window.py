@@ -4,6 +4,7 @@ from os import mkdir as OS_mkdir
 from sys import argv as SYS_argv
 from sys import exit as SYS_exit
 from copy import copy as COPY_copy
+from PIL import Image as PIL_image
 from re import findall as RE_findall
 from lxml import etree as LXML_etree
 from time import sleep as TIME_sleep
@@ -11,6 +12,7 @@ from json import loads as JSON_loads
 from json import dumps as JSON_dumps
 from datetime import date as DATE_date
 from threading import Thread as THREAD_Thread
+from shutil import copyfile as SHUTIL_copyfile
 from datetime import datetime as DATE_Datetime
 from datetime import timedelta as DATE_timedelta
 from selenium import webdriver as Selenium_webdriver
@@ -19,8 +21,8 @@ from selenium.webdriver.chrome.options import Options as Chrome_options
 
 
 from PyQt5.QtCore import Qt,pyqtSignal
-from PyQt5.QtGui import QBitmap, QPainter
-from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QHeaderView, QListView
+from PyQt5.QtGui import QBitmap, QPainter, QPixmap
+from PyQt5.QtWidgets import QMainWindow, QApplication, QLabel, QHeaderView, QListView, QFileDialog
 
 from Main_Window_UI import Ui_Main_Window_UI
 from Login_Window import Login_Window
@@ -29,17 +31,18 @@ from Message_Window import Message_Window
 FIRST_WEEK_DATE = DATE_date(2021,3,1)
 
 
-#TODO:通知队列和读取文件出错通知
+#TODO:通知队列和读取文件出错通知，所有try都要有
 class Main_Window(QMainWindow, Ui_Main_Window_UI):
     '''管理窗口控件、所有模块公用的逻辑、主业务逻辑'''
-    show_info_single = pyqtSignal(str,bool)   #在Info_Label显示提示信息3秒(bool = False)或持续显示(bool = True)
-    show_message_single = pyqtSignal(str)
+    show_info_single = pyqtSignal(str,bool)     #在Info_Label显示提示信息3秒(bool = False)或持续显示(bool = True)
+    show_message_single = pyqtSignal(str)       #用message_window显示一条消息
     message_window_close_single = pyqtSignal()
 
     def __init__(self):
         QMainWindow.__init__(self)
         #设置窗口样式、设置激励与响应等构造方法中不包含业务逻辑的部分
         self.Main_window_init()
+        self.Custom_setting_init()
 
         self.message_window = None  #为避免垃圾回收把窗口搞没了，留一个指向窗口的指针
 
@@ -48,17 +51,6 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
         self.darging = False
         self.drag_first_point = None
         self.drag_second_point = None
-
-        self.main_window.Set_Opacity_Slider.blockSignals(True)
-        self.main_window.Set_Opacity_Slider.setValue(self.data_struct_module.window_opacity * 100)
-        self.main_window.Set_Opacity_Slider.blockSignals(False)
-        self.main_window.Set_Opacity_LineEdit.setText(str(self.data_struct_module.window_opacity))
-        self.Set_opacity(self.data_struct_module.window_opacity)
-
-        if self.data_struct_module.save_account:
-            self.main_window.Save_Account_CheckBox.setCheckState(2)
-        else:
-            self.main_window.Save_Account_CheckBox.setCheckState(0)
 
         self.schedule_tab.Set_schedule()
         self.data_struct_module.Check_data_same_to_web()
@@ -87,12 +79,61 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
         self.main_window.Setting_Button.released.connect(self.On_setting_button_clicked)
         self.main_window.Close_Button.released.connect(self.On_close_button_clicked)
 
-        self.main_window.mousePressEvent = self.On_Mouse_press_event
-        self.main_window.mouseMoveEvent = self.On_Mouse_move_event
-        self.main_window.mouseReleaseEvent = self.On_Mouse_release_event
+        self.main_window.mousePressEvent = self.On_mouse_press_event
+        self.main_window.mouseMoveEvent = self.On_mouse_move_event
+        self.main_window.mouseReleaseEvent = self.On_mouse_release_event
         self.main_window.closeEvent = self.On_close_event
 
         self.show_info_single.connect(self.On_show_info_single)
+        self.show_message_single.connect(self.On_show_message_single)
+        self.message_window_close_single.connect(self.On_message_window_close_single)
+
+    def Custom_setting_init(self):
+        '''构造函数中设置背景，透明度等等个性化设置'''
+        self.main_window.Set_Opacity_Slider.blockSignals(True)
+        self.main_window.Set_Opacity_Slider.setValue(int(self.data_struct_module.window_opacity * 100))
+        self.main_window.Set_Opacity_Slider.blockSignals(False)
+        self.main_window.Set_Opacity_LineEdit.setText(str(self.data_struct_module.window_opacity))
+        self.Set_opacity(self.data_struct_module.window_opacity)
+
+        if self.data_struct_module.save_account:
+            self.main_window.Save_Account_CheckBox.blockSignals(True)
+            self.main_window.Save_Account_CheckBox.setCheckState(2)
+            self.main_window.Save_Account_CheckBox.blockSignals(False)
+        else:
+            self.main_window.Save_Account_CheckBox.blockSignals(True)
+            self.main_window.Save_Account_CheckBox.setCheckState(0)
+            self.main_window.Save_Account_CheckBox.blockSignals(False)
+
+        if self.data_struct_module.main_window_bg_custom:
+            try:
+                bg = PIL_image.open('./local_cache/Custom_Main_Window_Bg.png').convert('RGB')  #尝试打开图片看看有没有问题
+            except BaseException:
+                self.data_struct_module.main_window_bg_custom = False
+            else:
+                self.main_window.Main_Window_Bg_Img_Label.setPixmap(QPixmap("./local_cache/Custom_Main_Window_Bg.png"))
+                self.main_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                                    border-radius: 50px;
+
+                                                                    border-image: url(./local_cache/Custom_Main_Window_Bg.png);
+                                                                }''')
+
+        if self.data_struct_module.login_window_bg_custom:
+            try:
+                bg = PIL_image.open('./local_cache/Custom_Login_Window_Bg.png').convert('RGB')
+            except BaseException:
+                self.data_struct_module.login_window_bg_custom = False
+            else:
+                self.main_window.Login_Window_Bg_Img_Label.setPixmap(QPixmap("./local_cache/Custom_Login_Window_Bg.png"))
+                #登录窗口可能还没有打开，所以不设置登录窗口的样式，消息窗口也是一样
+
+        if self.data_struct_module.message_window_bg_custom:
+            try:
+                bg = PIL_image.open('./local_cache/Custom_Message_Window_Bg.png').convert('RGB')
+            except BaseException:
+                self.data_struct_module.message_window_bg_custom = False
+            else:
+                self.main_window.Message_Window_Bg_Img_Label.setPixmap(QPixmap("./local_cache/Custom_Message_Window_Bg.png"))
 
     def Set_opacity(self,window_opacity):
         self.data_struct_module.window_opacity = window_opacity
@@ -103,7 +144,8 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
             if self.data_struct_module.login_window.message_window != None:
                 self.data_struct_module.login_window.message_window.setWindowOpacity(self.data_struct_module.window_opacity)
 
-        if self.message_window != None:
+        #Set_opacity第一次调用是在Custom_setting_init里，message_window还未声明，所以先看看有没有message_window
+        if hasattr(self,'message_window') and self.message_window != None:
             self.message_window.setWindowOpacity(self.data_struct_module.window_opacity)
 
     def On_show_info_single(self, info, whether_last):
@@ -146,26 +188,36 @@ class Main_Window(QMainWindow, Ui_Main_Window_UI):
     def On_close_button_clicked(self):
         self.close()
 
-    def On_Mouse_press_event(self,event):
+    def On_mouse_press_event(self,event):
         '''用来实现窗口拖动'''
         if event.pos().y() <= self.main_window.Main_Tab_Widget.geometry().y():
             self.drag_first_point = event.pos()
             self.main_window.setCursor(Qt.ClosedHandCursor)
             self.darging = True
 
-    def On_Mouse_move_event(self,event):
+    def On_mouse_move_event(self,event):
         '''用来实现窗口拖动'''
         if self.darging:
             self.drag_second_point = event.pos()
             self.main_window.move(self.main_window.pos() + (self.drag_second_point - self.drag_first_point))
 
-    def On_Mouse_release_event(self, event):
+    def On_mouse_release_event(self, event):
         '''用来实现窗口拖动'''
         self.main_window.setCursor(Qt.ArrowCursor)
         self.darging = False
 
     def On_close_event(self, event):
         self.data_struct_module.Save_data_struct_to_disk()
+
+        if self.data_struct_module.login_window != None:
+            if self.data_struct_module.login_window.message_window != None:
+                self.data_struct_module.login_window.message_window.close()
+            self.data_struct_module.login_window.close()
+
+        if self.message_window != None:
+            self.message_window.close()
+
+        self.main_window.close()
 
 class Main_Window_View:
     '''管理主窗口样式，对控件样式，按深度优先便利控件树的顺序设置各控件样式，下同'''
@@ -314,12 +366,17 @@ class Data_Struct_Module(QMainWindow):
         self.background_thread = None   #登录教务处或者显示提示信息几秒后清楚信息用的
 
         self.bro = None                 #登录用的浏览器
+        self.course_list_temp = []      #用于比对主课程列表与教务处是否一致
+
+        #以下是会写到硬盘的数据
         self.name = ''
         self.password =''
-        self.save_account = False
         self.window_opacity = 0.85
         self.course_list = []           #主课程列表
-        self.course_list_temp = []      #用于比对主课程列表与教务处是否一致
+        self.save_account = False
+        self.main_window_bg_custom = False
+        self.login_window_bg_custom = False
+        self.message_window_bg_custom = False
 
         self.Get_data_struct_from_disk()
 
@@ -449,6 +506,18 @@ class Data_Struct_Module(QMainWindow):
                 if not (data_struct_dict['save_account'] == True or data_struct_dict['save_account'] == False):
                     raise BaseException
 
+                data_struct_dict['main_window_bg_custom']
+                if not (data_struct_dict['main_window_bg_custom'] == True or data_struct_dict['main_window_bg_custom'] == False):
+                    raise BaseException
+
+                data_struct_dict['login_window_bg_custom']
+                if not (data_struct_dict['login_window_bg_custom'] == True or data_struct_dict['login_window_bg_custom'] == False):
+                    raise BaseException
+
+                data_struct_dict['message_window_bg_custom']
+                if not (data_struct_dict['message_window_bg_custom'] == True or data_struct_dict['message_window_bg_custom'] == False):
+                    raise BaseException
+
                 data_struct_dict['course_list']
                 course_list = []
                 for course_json in data_struct_dict['course_list']:
@@ -467,6 +536,9 @@ class Data_Struct_Module(QMainWindow):
                 self.password = data_struct_dict['password']
                 self.window_opacity = data_struct_dict['window_opacity']
                 self.save_account = data_struct_dict['save_account']
+                self.main_window_bg_custom = data_struct_dict['main_window_bg_custom']
+                self.login_window_bg_custom = data_struct_dict['login_window_bg_custom']
+                self.message_window_bg_custom = data_struct_dict['message_window_bg_custom']
                 self.course_list = course_list
 
                 if len(self.course_list) > 0:
@@ -493,6 +565,9 @@ class Data_Struct_Module(QMainWindow):
                                 'password':self.password if self.save_account else '',
                                 'window_opacity':self.window_opacity,
                                 'save_account':self.save_account,
+                                'main_window_bg_custom':self.main_window_bg_custom,
+                                'login_window_bg_custom':self.login_window_bg_custom,
+                                'message_window_bg_custom':self.message_window_bg_custom,
                                 'course_list':course_list_json}
             data_struct_json = JSON_dumps(data_struct_dict,ensure_ascii=False)
 
@@ -871,6 +946,12 @@ class Setting_Tab:
         self.main_window.Set_Opacity_LineEdit.textChanged.connect(self.On_set_opacity_lineedit_textchanged)
         self.main_window.Set_Opacity_Slider.valueChanged.connect(self.On_set_opacity_slider_value_changed)
         self.main_window.Save_Account_CheckBox.stateChanged.connect(self.On_save_account_checkBox_changed)
+        self.main_window.Main_Window_Bg_Custom_Button.released.connect(self.On_main_window_bg_custom_button)
+        self.main_window.Main_Window_Bg_Reset_Button.released.connect(self.On_main_window_bg_reset_button)
+        self.main_window.Login_Window_Bg_Custom_Button.released.connect(self.On_login_window_bg_custom_button)
+        self.main_window.Login_Window_Bg_Reset_Button.released.connect(self.On_login_window_bg_reset_button)
+        self.main_window.Message_Window_Bg_Custom_Button.released.connect(self.On_message_window_bg_custom_button)
+        self.main_window.Message_Window_Bg_Reset_Button.released.connect(self.On_message_window_bg_reset_button)
 
     def On_save_account_checkBox_changed(self,event):
         #取消
@@ -878,6 +959,7 @@ class Setting_Tab:
             self.data_struct_module.save_account = False
         #选中
         else:
+            self.main_window.show_message_single.emit(r'学号和密码都以明码保存在local_cache\local_cache.json里，请注意数据安全')
             self.data_struct_module.save_account = True
 
     def On_set_opacity_lineedit_textchanged(self):
@@ -897,6 +979,100 @@ class Setting_Tab:
     def On_set_opacity_slider_value_changed(self):
         #set了text就会引起On_set_opacity_lineedit_textchanged响应，就不用在slider里Set_opacity了
         self.main_window.Set_Opacity_LineEdit.setText(str(self.main_window.Set_Opacity_Slider.value() / 100))
+
+    def On_main_window_bg_custom_button(self):
+        bg_path = QFileDialog.getOpenFileName(self.main_window,'选择一个背景',filter = '图像文件(*.jpg *.jpeg *.png *.webp *.bmp *.tif *.tga *.JPG *.JPEG *.PNG *.WEBP *.BMP *.TIF *.TGA)')
+        if bg_path[0] != '':
+            try:
+                bg = PIL_image.open(bg_path[0])    #转成png格式来统一文件名（文件名都写死在代码里了，所以后缀名也要和代码一致），顺便看看图片有没有问题
+                bg.save('local_cache\Custom_Main_Window_Bg.png')
+            except:
+                self.main_window.show_message_single.emit(r'这个图片有问题嘛，打不开')
+            else:
+                self.data_struct_module.main_window_bg_custom = True
+                self.main_window.Main_Window_Bg_Img_Label.setPixmap(QPixmap("./local_cache/Custom_Main_Window_Bg.png"))
+                self.main_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                                    border-radius: 50px;
+
+                                                                    border-image: url(./local_cache/Custom_Main_Window_Bg.png);
+                                                                }''')
+
+    def On_main_window_bg_reset_button(self):
+        self.data_struct_module.main_window_bg_custom = False
+        self.main_window.Main_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Main_Window_Background.png"))
+        self.main_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                            border-radius: 50px;
+
+                                                            border-image: url(:/all_images/res/Main_Window_Background.png);
+                                                        }''')
+
+    def On_login_window_bg_custom_button(self):
+        bg_path = QFileDialog.getOpenFileName(self.main_window,'选择一个背景',filter = '图像文件(*.jpg *.jpeg *.png *.webp *.bmp *.tif *.tga *.JPG *.JPEG *.PNG *.WEBP *.BMP *.TIF *.TGA)')
+        if bg_path[0] != '':
+            try:
+                bg = PIL_image.open(bg_path[0])
+                bg.save('local_cache\Custom_Login_Window_Bg.png')
+            except:
+                self.main_window.show_message_single.emit(r'这个图片有问题嘛，打不开')
+            else:
+                self.data_struct_module.login_window_bg_custom = True
+                self.main_window.Login_Window_Bg_Img_Label.setPixmap(QPixmap("./local_cache/Custom_Login_Window_Bg.png"))
+                if self.data_struct_module.login_window != None:
+                    self.data_struct_module.login_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                                                            border-radius: 50px;
+
+                                                                                            border-image: url(./local_cache/Custom_Login_Window_Bg.png);
+                                                                                        }''')
+
+    def On_login_window_bg_reset_button(self):
+        self.data_struct_module.login_window_bg_custom = False
+        self.main_window.Login_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Login_Window_Background.png"))
+        if self.data_struct_module.login_window != None:
+            self.data_struct_module.login_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                                                    border-radius: 50px;
+
+                                                                                    border-image: url(:/all_images/res/Login_Window_Background.png);
+                                                                                }''')
+
+    def On_message_window_bg_custom_button(self):
+        bg_path = QFileDialog.getOpenFileName(self.main_window,'选择一个背景',filter = '图像文件(*.jpg *.jpeg *.png *.webp *.bmp *.tif *.tga *.JPG *.JPEG *.PNG *.WEBP *.BMP *.TIF *.TGA)')
+        if bg_path[0] != '':
+            try:
+                bg = PIL_image.open(bg_path[0])
+                bg.save('local_cache\Custom_Message_Window_Bg.png')
+            except:
+                self.main_window.show_message_single.emit(r'这个图片有问题嘛，打不开')
+            else:
+                self.data_struct_module.message_window_bg_custom = True
+                self.main_window.Message_Window_Bg_Img_Label.setPixmap(QPixmap("local_cache\Custom_Message_Window_Bg.png"))
+                if self.main_window.message_window != None:
+                    self.main_window.message_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                                                    border-radius: 50px;
+
+                                                                                    border-image: url(./local_cache/Custom_Message_Window_Bg.png);
+                                                                                }''')
+                if self.data_struct_module.login_window != None and self.data_struct_module.login_window.message_window != None:
+                    self.data_struct_module.login_window.message_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                                                                            border-radius: 50px;
+
+                                                                                                            border-image: url(./local_cache/Custom_Message_Window_Bg.png);
+                                                                                                        }''')
+
+    def On_message_window_bg_reset_button(self):
+        self.data_struct_module.message_window_bg_custom = False
+        self.main_window.Message_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Message_Window_Background.png"))
+        if self.main_window.message_window != None:
+            self.main_window.message_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                                            border-radius: 50px;
+
+                                                                            border-image: url(:/all_images/res/Message_Window_Background.png);
+                                                                        }''')
+        if self.data_struct_module.login_window != None and self.data_struct_module.login_window.message_window != None:
+            self.data_struct_module.login_window.message_window.Central_Widget.setStyleSheet('''#Central_Widget{
+                                                                                                    border-radius: 50px;
+
+                                                                                                    border-image: url(:/all_images/res/Message_Window_Background.png);
+                                                                                                }''')
 
 class Setting_Tab_View:
     '''管理设置Tab的样式'''

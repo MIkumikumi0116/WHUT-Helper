@@ -369,6 +369,12 @@
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
               </spacer>
              </item>
             </layout>
@@ -410,6 +416,12 @@
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
               </spacer>
              </item>
             </layout>
@@ -447,16 +459,16 @@
            <item>
             <layout class="QHBoxLayout" name="Background_Setting_Layout">
              <item>
-              <layout class="QVBoxLayout" name="Main_Bg_Setting_Layout">
+              <layout class="QVBoxLayout" name="Main_Window_Bg_Setting_Layout">
                <item>
-                <widget class="QLabel" name="Main_Bg_ID_Label">
+                <widget class="QLabel" name="Main_Window_Bg_ID_Label">
                  <property name="text">
                   <string>id</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="Main_Bg_Img_Label">
+                <widget class="QLabel" name="Main_Window_Bg_Img_Label">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
                    <horstretch>0</horstretch>
@@ -481,14 +493,14 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="Main_Bg_Custom_Button">
+                <widget class="QPushButton" name="Main_Window_Bg_Custom_Button">
                  <property name="text">
                   <string>自定背景</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="Main_Bg_Reset_Button">
+                <widget class="QPushButton" name="Main_Window_Bg_Reset_Button">
                  <property name="text">
                   <string>恢复默认</string>
                  </property>
@@ -497,16 +509,16 @@
               </layout>
              </item>
              <item>
-              <layout class="QVBoxLayout" name="Login_Bg_Setting_Layout">
+              <layout class="QVBoxLayout" name="Login_Window_Bg_Setting_Layout">
                <item>
-                <widget class="QLabel" name="Login_Bg_ID_Label">
+                <widget class="QLabel" name="Login_Window_Bg_ID_Label">
                  <property name="text">
                   <string>id</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="Login_Bg_Img_Label">
+                <widget class="QLabel" name="Login_Window_Bg_Img_Label">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
                    <horstretch>0</horstretch>
@@ -531,14 +543,14 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="Login_Bg_Custom_Button">
+                <widget class="QPushButton" name="Login_Window_Bg_Custom_Button">
                  <property name="text">
                   <string>自定背景</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="Login_Bg_Reset_Button">
+                <widget class="QPushButton" name="Login_Window_Bg_Reset_Button">
                  <property name="text">
                   <string>恢复默认</string>
                  </property>
@@ -547,16 +559,16 @@
               </layout>
              </item>
              <item>
-              <layout class="QVBoxLayout" name="Message_Bg_Setting_Layout">
+              <layout class="QVBoxLayout" name="Message_Window_Bg_Setting_Layout">
                <item>
-                <widget class="QLabel" name="Message_Bg_ID_Label">
+                <widget class="QLabel" name="Message_Window_Bg_ID_Label">
                  <property name="text">
                   <string>id</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="Message_Bg_Img_Label">
+                <widget class="QLabel" name="Message_Window_Bg_Img_Label">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
                    <horstretch>0</horstretch>
@@ -581,14 +593,14 @@
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="Message_Bg_Custom_Button">
+                <widget class="QPushButton" name="Message_Window_Bg_Custom_Button">
                  <property name="text">
                   <string>自定背景</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QPushButton" name="Message_Bg_Reset_Button">
+                <widget class="QPushButton" name="Message_Window_Bg_Reset_Button">
                  <property name="text">
                   <string>恢复默认</string>
                  </property>
@@ -622,6 +634,7 @@
   </widget>
  </widget>
  <resources>
+  <include location="All_Res.qrc"/>
   <include location="All_Res.qrc"/>
  </resources>
  <connections/>

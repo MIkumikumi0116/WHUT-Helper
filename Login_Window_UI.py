@@ -15,7 +15,7 @@ class Ui_Login_Window_UI(object):
     def setupUi(self, Login_Window_UI):
         Login_Window_UI.setObjectName("Login_Window_UI")
         Login_Window_UI.setEnabled(True)
-        Login_Window_UI.resize(480, 320)
+        Login_Window_UI.resize(540, 360)
         self.Central_Widget = QtWidgets.QWidget(Login_Window_UI)
         self.Central_Widget.setObjectName("Central_Widget")
         self.Central_Widget_Layout = QtWidgets.QVBoxLayout(self.Central_Widget)

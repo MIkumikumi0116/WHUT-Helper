@@ -231,7 +231,7 @@ class Main_Window_View:
         self.main_window.Central_Widget.setStyleSheet('''#Central_Widget{
                                                             border-radius: 50px;
 
-                                                            border-image: url(:/all_images/res/Main_Window_Background.png);
+                                                            border-image: url(:/all_images/res/Main_Window_Bg.png);
                                                         }''')
         self.main_window.Central_Widget_Layout.setContentsMargins(10,20,10,10)
         self.main_window.Central_Widget_Layout.setSpacing(0)
@@ -904,6 +904,14 @@ class Judge_Tab_View:
         self.main_window.Judge_Tab_Layout.setContentsMargins(10,10,10,10)
         self.main_window.Judge_Tab_Layout.setSpacing(10)
 
+        self.main_window.Judge_Tab_Label.setStyleSheet('''#Judge_Tab_Label{
+                                                                color: rgb(255,255,255);
+
+                                                                font-family: 'Microsoft Yahei light';
+                                                                font-size: 40px;
+                                                            }''')
+        self.main_window.Judge_Tab_Label.setAlignment(Qt.AlignCenter)
+
 
 
 class Score_Tab:
@@ -931,6 +939,14 @@ class Score_Tab_View:
                                                     }''')
         self.main_window.Score_Tab_Layout.setContentsMargins(10,10,10,10)
         self.main_window.Score_Tab_Layout.setSpacing(10)
+
+        self.main_window.Score_Tab_Label.setStyleSheet('''#Score_Tab_Label{
+                                                                color: rgb(255,255,255);
+
+                                                                font-family: 'Microsoft Yahei light';
+                                                                font-size: 40px;
+                                                            }''')
+        self.main_window.Score_Tab_Label.setAlignment(Qt.AlignCenter)
 
 
 
@@ -999,11 +1015,11 @@ class Setting_Tab:
 
     def On_main_window_bg_reset_button(self):
         self.data_struct_module.main_window_bg_custom = False
-        self.main_window.Main_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Main_Window_Background.png"))
+        self.main_window.Main_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Main_Window_Bg.png"))
         self.main_window.Central_Widget.setStyleSheet('''#Central_Widget{
                                                             border-radius: 50px;
 
-                                                            border-image: url(:/all_images/res/Main_Window_Background.png);
+                                                            border-image: url(:/all_images/res/Main_Window_Bg.png);
                                                         }''')
 
     def On_login_window_bg_custom_button(self):
@@ -1026,12 +1042,12 @@ class Setting_Tab:
 
     def On_login_window_bg_reset_button(self):
         self.data_struct_module.login_window_bg_custom = False
-        self.main_window.Login_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Login_Window_Background.png"))
+        self.main_window.Login_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Login_Window_Bg.png"))
         if self.data_struct_module.login_window != None:
             self.data_struct_module.login_window.Central_Widget.setStyleSheet('''#Central_Widget{
                                                                                     border-radius: 50px;
 
-                                                                                    border-image: url(:/all_images/res/Login_Window_Background.png);
+                                                                                    border-image: url(:/all_images/res/Login_Window_Bg.png);
                                                                                 }''')
 
     def On_message_window_bg_custom_button(self):
@@ -1060,18 +1076,18 @@ class Setting_Tab:
 
     def On_message_window_bg_reset_button(self):
         self.data_struct_module.message_window_bg_custom = False
-        self.main_window.Message_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Message_Window_Background.png"))
+        self.main_window.Message_Window_Bg_Img_Label.setPixmap(QPixmap(":/all_images/res/Message_Window_Bg.png"))
         if self.main_window.message_window != None:
             self.main_window.message_window.Central_Widget.setStyleSheet('''#Central_Widget{
                                                                             border-radius: 50px;
 
-                                                                            border-image: url(:/all_images/res/Message_Window_Background.png);
+                                                                            border-image: url(:/all_images/res/Message_Window_Bg.png);
                                                                         }''')
         if self.data_struct_module.login_window != None and self.data_struct_module.login_window.message_window != None:
             self.data_struct_module.login_window.message_window.Central_Widget.setStyleSheet('''#Central_Widget{
                                                                                                     border-radius: 50px;
 
-                                                                                                    border-image: url(:/all_images/res/Message_Window_Background.png);
+                                                                                                    border-image: url(:/all_images/res/Message_Window_Bg.png);
                                                                                                 }''')
 
 class Setting_Tab_View:
@@ -1193,6 +1209,25 @@ class Setting_Tab_View:
                                                             }''')
         self.main_window.Setting_Right_Widget_Layout.setContentsMargins(10,10,10,10)
         self.main_window.Setting_Right_Widget_Layout.setSpacing(10)
+
+        self.main_window.Illustrator_ID_Layout.setContentsMargins(0,0,0,10)
+        self.main_window.Background_Setting_Layout.setSpacing(20)
+
+        self.main_window.Main_Window_Bg_ID_Label.setText('''<style> a {text-decoration: none; color: white} </style>
+                                                            <a href = \"https://www.pixiv.net/artworks/49240323\">
+                                                            <div><p>miku千里走单骑</p><p>来自千夜QYS3</p><p>作品id:</p><p>49240323</p>
+                                                            </div></a>''')
+        self.main_window.Main_Window_Bg_ID_Label.setOpenExternalLinks(True)
+        self.main_window.Login_Window_Bg_ID_Label.setText('''<style> a {text-decoration: none; color: white} </style>
+                                                            <a href = \"https://www.pixiv.net/artworks/84026087\">
+                                                            <div><p>韶华</p><p>来自画师ASK</p><p>作品id:</p><p>84026087</p>
+                                                            </div></a>''')
+        self.main_window.Login_Window_Bg_ID_Label.setOpenExternalLinks(True)
+        self.main_window.Message_Window_Bg_ID_Label.setText('''<style> a {text-decoration: none; color: white} </style>
+                                                                <a href = \"https://www.pixiv.net/artworks/79257667\">
+                                                                <div><p>ヌードル·ストッパー</p><p>来自画师DangMyo</p><p>作品id:</p><p>79257667</p>
+                                                                </div></a>''')
+        self.main_window.Message_Window_Bg_ID_Label.setOpenExternalLinks(True)
 
 
 

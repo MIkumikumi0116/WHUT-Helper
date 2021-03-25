@@ -32,6 +32,8 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
         self.drag_first_point = None
         self.drag_second_point = None
 
+        self.setWindowOpacity(self.parent_window.data_struct_module.window_opacity)
+
         if self.parent_window.data_struct_module.message_window_bg_custom:
             self.Central_Widget.setStyleSheet('''#Central_Widget{
                                                     border-radius: 50px;
@@ -42,7 +44,7 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
             self.Central_Widget.setStyleSheet('''#Central_Widget{
                                                 border-radius: 50px;
 
-                                                border-image: url(:/all_images/res/Message_Window_Background.png);
+                                                border-image: url(:/all_images/res/Message_Window_Bg.png);
                                             }''')
 
         self.Massage_Label.setText(massage)
@@ -58,7 +60,7 @@ class Message_Window(QMainWindow, Ui_Message_Window_UI):
         self.Massage_Panel.setStyleSheet('''#Massage_Panel{
                                             border-radius: 40px;
 
-                                            background: rgba(0,0,0,0.2);
+                                            background: rgba(0,0,0,0.25);
                                         }''')
         self.Massage_Panel_Layout.setContentsMargins(0,0,0,0)
         self.Massage_Panel_Layout.setSpacing(0)

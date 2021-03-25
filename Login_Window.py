@@ -44,8 +44,9 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
         self.drag_first_point = None
         self.drag_second_point = None
 
-        if self.data_struct_module.login_window_bg_custom:
-            #在main_window初始化的时候已经查过图片有没有问题了，现在自定义还有效的话图片肯定没问题
+        self.setWindowOpacity(self.data_struct_module.window_opacity)
+
+        if self.data_struct_module.message_window_bg_custom:
             self.Central_Widget.setStyleSheet('''#Central_Widget{
                                                     border-radius: 50px;
 
@@ -53,10 +54,10 @@ class Login_Window(QMainWindow, Ui_Login_Window_UI):
                                                 }''')
         else:
             self.Central_Widget.setStyleSheet('''#Central_Widget{
-                                                    border-radius: 50px;
+                                                border-radius: 50px;
 
-                                                    border-image: url(:/all_images/res/Login_Window_Background.png);
-                                                }''')
+                                                border-image: url(:/all_images/res/Login_Window_Bg.png);
+                                            }''')
 
     def Set_style(self):
         self.setWindowFlag(Qt.FramelessWindowHint)      #隐藏边框

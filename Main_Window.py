@@ -445,7 +445,7 @@ class Data_Struct_Module(QMainWindow):
         def Get_a_course_from_a_row(row):
             '''获取一行的课'''
             for col_count in range(row_to_columns_dict[row],row_to_columns_dict[row] + 7 if row != 4 else row_to_columns_dict[row] + 8):
-                td = tree.xpath(f'/html/body/div/div[1]/div[2]/div/div/div[2]/div[2]/div/table/tbody[2]/tr[{row}]/td[{str(col_count)}]')[0]
+                td = tree.xpath(f'//div[@id="xqkb"]/div/table/tbody[2]/tr[{row}]/td[{str(col_count)}]')[0]
                 anchors = td.xpath('./div/a')
 
                 for a in anchors:
@@ -485,7 +485,7 @@ class Data_Struct_Module(QMainWindow):
             Get_a_course_from_a_row(row)
 
     def Get_data_struct_from_disk(self):
-        '''从磁盘获取课程列表，成功返回True，失败返回错误类型'''
+        '''从磁盘获取数据，成功返回True，失败返回错误类型'''
         if OS_path.isdir('local_cache') and OS_path.isfile('local_cache\local_cache.json'):
             with open('local_cache\local_cache.json', 'r',encoding='utf-8') as file:
                 data_struct_json = file.read()
@@ -522,7 +522,7 @@ class Data_Struct_Module(QMainWindow):
                 data_struct_dict['course_list']
                 course_list = []
                 for course_json in data_struct_dict['course_list']:
-                    course_dict = JSON_loads(course_json)
+                    course_dict = course_json
                     course_list.append(Data_Struct_Module.Course(course_dict['name'],course_dict['teacher'],course_dict['classroom'],course_dict['day'],course_dict['big_class'],
                                                                  course_dict['start_week'],course_dict['end_week'],course_dict['start_class'],course_dict['end_class']))
 
@@ -552,14 +552,14 @@ class Data_Struct_Module(QMainWindow):
             return 'File not found'
 
     def Save_data_struct_to_disk(self):
-        '''保存课程列表到本地'''
+        '''保存数据到本地'''
         if not OS_path.isdir('local_cache'):
             OS_mkdir('local_cache')
 
         with open('local_cache\local_cache.json', 'w',encoding='utf-8') as file:
             course_list_json = []
             for course in self.course_list:
-                course_info = JSON_dumps(course.To_dict(),ensure_ascii=False)
+                course_info = course.To_dict()
                 course_list_json.append(course_info)
 
             data_struct_dict = {'name':self.name if self.save_account else '',
